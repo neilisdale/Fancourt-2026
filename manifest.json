@@ -1,0 +1,14 @@
+{
+  "name": "Fancourt 2026",
+  "short_name": "Fancourt 2026",
+  "description": "3-Day Team A vs Team B matchplay at Fancourt (Montagu / Outeniqua / The Links)",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#15253e",
+  "theme_color": "#15253e",
+  "orientation": "portrait",
+  "icons": [
+    {"src": "apple-touch-icon.png", "sizes": "180x180", "type": "image/png"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
+  ]
+}

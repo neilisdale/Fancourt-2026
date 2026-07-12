@@ -1,0 +1,2658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#15253e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Fancourt 2026">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+<link rel="manifest" href="manifest.json">
+<title>Fancourt 2026</title>
+<style>
+  :root {
+    /* Mayday Tour 2026 palette — sampled from the logo (#15253e navy) */
+    --navy: #15253e;
+    --navy-dark: #0d1929;
+    --navy-mid: #1f3358;
+    --navy-50: #e8eef5;
+    --green: #15253e;        /* alias kept so existing rules switch to navy */
+    --green-dark: #0d1929;
+    --green-light: #e8eef5;
+    --cream: #15253e;        /* page background */
+    --gold: #d4a017;
+    --gold-dark: #b78514;
+    --gold-light: #fff4d6;
+    --gray-50: #f9fafb;
+    --gray-100: #f3f4f6;
+    --gray-200: #e5e7eb;
+    --gray-300: #d1d5db;
+    --gray-500: #6b7280;
+    --gray-700: #374151;
+    --gray-900: #111827;
+    --red: #b91c1c;
+    --blue-50: #e8eef5;
+  }
+  .sr-only {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    white-space: nowrap;
+    border: 0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--cream);
+    color: var(--gray-900);
+    margin: 0;
+    padding: 20px;
+    line-height: 1.4;
+  }
+  .container { max-width: 1200px; margin: 0 auto; }
+  header {
+    background: transparent;
+    color: white;
+    padding: 24px 16px 28px;
+    margin-bottom: 16px;
+    text-align: center;
+  }
+  header .logo {
+    display: block;
+    margin: 0 auto;
+    max-width: 280px;
+    width: 65%;
+    height: auto;
+  }
+  h1 { margin: 0; font-size: 28px; }
+  .subtitle {
+    margin-top: 10px;
+    font-size: 14px;
+    color: #c8d3e0;
+    letter-spacing: 0.3px;
+  }
+
+  .step {
+    background: white;
+    border: 1px solid var(--gray-200);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+  }
+  .step h2 {
+    margin: 0 0 12px 0;
+    font-size: 18px;
+    color: var(--green-dark);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .step-num {
+    display: inline-block;
+    background: var(--green);
+    color: white;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 28px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .count-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--gray-50);
+    padding: 12px 14px;
+    border-radius: 6px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+  .count-controls label { font-weight: 600; font-size: 14px; flex: 0 0 auto; }
+  .count-controls input[type="number"] {
+    width: 72px;
+    padding: 6px 8px;
+    border: 1px solid var(--gray-300);
+    border-radius: 4px;
+    font-size: 14px;
+    text-align: center;
+    font-family: inherit;
+    flex: 0 0 auto;
+  }
+  .count-controls .hint {
+    font-size: 12px;
+    color: var(--gray-500);
+    flex: 1 1 100%;
+    line-height: 1.5;
+    margin-top: 2px;
+  }
+
+  .players-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+    gap: 10px;
+  }
+  .player-card {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    min-width: 0;
+  }
+  .player-card.is-ghost {
+    background: var(--gold-light);
+    border-color: var(--gold);
+  }
+  .player-card .player-input {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 8px 10px;
+    border: 1px solid var(--gray-300);
+    border-radius: 4px;
+    font-size: 14px;
+    font-family: inherit;
+  }
+  .player-card .hcp-input {
+    width: 58px;
+    flex: 0 0 auto;
+    padding: 8px 4px;
+    border: 1px solid var(--gray-300);
+    border-radius: 4px;
+    font-size: 14px;
+    font-family: inherit;
+    text-align: center;
+  }
+  .player-card .hcp-input:disabled {
+    background: var(--gray-100);
+    color: var(--gray-500);
+  }
+  .hcp-label {
+    font-size: 10px;
+    color: var(--gray-500);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    flex: 0 0 auto;
+  }
+  .player-index {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--gray-500);
+    width: 20px;
+    text-align: right;
+    flex: 0 0 auto;
+  }
+
+  .course-section { margin-top: 16px; }
+  .course-section h3 {
+    font-size: 15px;
+    margin: 16px 0 8px 0;
+    color: var(--green-dark);
+  }
+
+  .scorecard-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--gray-200);
+    border-radius: 4px;
+    background: white;
+  }
+  table.scorecard, table.course-setup {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 13px;
+  }
+  .scorecard th, .scorecard td,
+  .course-setup th, .course-setup td {
+    border: 1px solid var(--gray-200);
+    padding: 0;
+    text-align: center;
+    min-width: 40px;
+    height: 32px;
+  }
+  .scorecard th, .course-setup th {
+    background: var(--green-light);
+    color: var(--green-dark);
+    font-weight: 600;
+    padding: 6px 0;
+  }
+  /* Scorecard header rows: distinct colours per row */
+  .scorecard tr.hdr-hole th {
+    background: var(--green-light);   /* navy tint */
+    color: var(--green-dark);
+    font-weight: 700;
+    padding: 6px 0;
+  }
+  .scorecard tr.hdr-par th {
+    background: #fef3c7;              /* warm amber */
+    color: #92400e;
+    font-weight: 600;
+    font-size: 12px;
+    padding: 4px 0;
+  }
+  .scorecard tr.hdr-par th.name-cell {
+    background: #fef3c7;
+    color: #92400e;
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .scorecard tr.hdr-stroke th {
+    background: #dbeafe;              /* cool blue */
+    color: #1e40af;
+    font-weight: 600;
+    font-size: 12px;
+    padding: 4px 0;
+  }
+  .scorecard tr.hdr-stroke th.name-cell {
+    background: #dbeafe;
+    color: #1e40af;
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .scorecard tr.hdr-hole th.name-cell {
+    background: var(--green-light);
+    color: var(--green-dark);
+    font-weight: 700;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .scorecard td.name-cell, .scorecard th.name-cell,
+  .course-setup td.row-label, .course-setup th.row-label {
+    text-align: left;
+    min-width: 170px;
+    padding: 4px 10px;
+    background: var(--gray-50);
+    font-weight: 500;
+    position: sticky;
+    left: 0;
+    z-index: 1;
+  }
+  .scorecard th.name-cell, .course-setup th.row-label { z-index: 2; background: var(--green-light); }
+  .scorecard tr.ghost-row td.name-cell { background: var(--gold-light); font-style: italic; }
+  .scorecard td.name-cell .score-name {
+    font-weight: 500;
+    font-size: 13px;
+    line-height: 1.3;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .scorecard td.name-cell .score-name .team-badge {
+    padding: 1px 6px;
+    font-size: 9px;
+    border-radius: 8px;
+  }
+  .scorecard td.name-cell .score-name-hcp {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 3px;
+  }
+  .scorecard td.name-cell .score-name-hcp label {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: var(--gray-500);
+  }
+  .scorecard td.name-cell .hcp-input-mini {
+    width: 44px;
+    height: 22px;
+    padding: 2px 4px;
+    font-size: 12px;
+    border: 1px solid var(--gray-300);
+    border-radius: 3px;
+    text-align: center;
+    font-family: inherit;
+    -moz-appearance: textfield;
+    background: white;
+  }
+  .scorecard td.name-cell .hcp-input-mini::-webkit-outer-spin-button,
+  .scorecard td.name-cell .hcp-input-mini::-webkit-inner-spin-button {
+    -webkit-appearance: none; margin: 0;
+  }
+  .scorecard td.name-cell .hcp-input-mini:disabled {
+    background: var(--gray-100);
+    color: var(--gray-500);
+  }
+  .scorecard td.name-cell .hcp-input-mini:focus {
+    outline: 2px solid var(--gold);
+    outline-offset: -1px;
+  }
+
+  .scorecard td.score-cell {
+    height: 52px;
+    padding: 2px 0;
+    position: relative;
+  }
+  .scorecard tr.ghost-row td.score-cell { background: #fffbe7; }
+  .scorecard tr.match-start-row td { border-top: 3px double var(--green-dark); }
+  .scorecard input.stroke-input {
+    width: 100%;
+    height: 28px;
+    border: none;
+    background: transparent;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 0;
+    font-family: inherit;
+    -moz-appearance: textfield;
+  }
+  .scorecard input.stroke-input::-webkit-outer-spin-button,
+  .scorecard input.stroke-input::-webkit-inner-spin-button {
+    -webkit-appearance: none; margin: 0;
+  }
+  .scorecard input.stroke-input:focus {
+    background: var(--gold-light);
+    outline: 2px solid var(--gold);
+    outline-offset: -2px;
+  }
+  .scorecard input.stroke-input:disabled {
+    color: var(--gray-500);
+    cursor: not-allowed;
+  }
+  .scorecard .pts-display {
+    font-size: 10px;
+    color: var(--gray-500);
+    line-height: 1;
+    padding-bottom: 2px;
+  }
+  .scorecard .pts-display.has-points { color: var(--green-dark); font-weight: 600; }
+  .scorecard tr.ghost-row .pts-display { color: var(--gold); font-style: italic; }
+
+  .course-setup input {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: transparent;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 0;
+    font-family: inherit;
+    -moz-appearance: textfield;
+  }
+  .course-setup input::-webkit-outer-spin-button,
+  .course-setup input::-webkit-inner-spin-button {
+    -webkit-appearance: none; margin: 0;
+  }
+  .course-setup input:focus {
+    background: var(--gold-light);
+    outline: 2px solid var(--gold);
+    outline-offset: -2px;
+  }
+  .course-setup .total-cell {
+    background: var(--green-light);
+    font-weight: 600;
+    color: var(--green-dark);
+    padding: 6px 8px;
+  }
+
+  .scorecard .total-cell {
+    background: var(--green-light);
+    font-weight: 600;
+    color: var(--green-dark);
+    padding: 6px 8px;
+  }
+  .scorecard tr.ghost-row .total-cell { background: #fff4d6; color: var(--gold); }
+
+  .btn-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  button.action {
+    background: var(--green);
+    color: white;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+    font-family: inherit;
+  }
+  button.action:hover { background: var(--green-dark); }
+  button.action:disabled {
+    background: var(--gray-300);
+    cursor: not-allowed;
+  }
+  button.action.secondary {
+    background: white;
+    color: var(--gray-700);
+    border: 1px solid var(--gray-300);
+  }
+  button.action.secondary:hover { background: var(--gray-50); }
+  button.action.danger {
+    background: white;
+    color: var(--red);
+    border: 1px solid var(--gray-300);
+  }
+  button.action.danger:hover { background: #fef2f2; }
+
+  .pairs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+  }
+  .pair-card {
+    border: 1px solid var(--gray-200);
+    border-radius: 6px;
+    padding: 12px 14px;
+    background: var(--gray-50);
+  }
+  .pair-card .team-label {
+    font-size: 11px;
+    color: var(--gray-500);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+    font-weight: 600;
+  }
+  .pair-card .player-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 3px 0;
+    font-size: 14px;
+  }
+  .pair-card .assignment {
+    color: var(--gray-500);
+    font-size: 12px;
+  }
+  .pair-card.ghost-team { background: var(--gold-light); border-color: var(--gold); }
+  .pair-card.ghost-team .ghost-row { font-style: italic; color: var(--gray-700); }
+  .course-block { margin-top: 10px; }
+  .course-block-title { font-size: 12px; font-weight: 600; color: var(--green-dark); margin-bottom: 2px; }
+
+  .results-list { margin-top: 12px; }
+  .result-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 16px;
+    border: 1px solid var(--gray-200);
+    border-radius: 6px;
+    margin-bottom: 8px;
+    background: white;
+    gap: 12px;
+  }
+  .result-row.winner {
+    background: var(--gold-light);
+    border-color: var(--gold);
+    border-width: 2px;
+    box-shadow: 0 4px 12px rgba(212, 160, 23, 0.25);
+  }
+  .result-row .rank {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--green);
+    width: 50px;
+    flex-shrink: 0;
+  }
+  .result-row.winner .rank { color: var(--gold); font-size: 28px; }
+  .result-row .team-info { flex: 1; min-width: 0; }
+  .result-row .team-names { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .result-row .team-detail { font-size: 12px; color: var(--gray-500); line-height: 1.5; }
+  .result-row .total {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--green-dark);
+    flex-shrink: 0;
+  }
+  .result-row.winner .total { color: var(--gold); font-size: 28px; }
+
+  .help-text { font-size: 13px; color: var(--gray-500); margin-top: 4px; }
+  .status-pill {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    background: var(--gray-100);
+    color: var(--gray-700);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .status-pill.done { background: var(--green-light); color: var(--green-dark); }
+
+  .info-box {
+    background: var(--blue-50);
+    border: 1px solid #bfdbfe;
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--gray-700);
+    margin-bottom: 12px;
+  }
+  .course-selector-row {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .course-selector-row > div {
+    flex: 1 1 220px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+  .course-selector-row label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: var(--gray-500);
+  }
+  .course-selector-row select {
+    padding: 8px 10px;
+    border: 1px solid var(--gray-300);
+    border-radius: 4px;
+    font-size: 14px;
+    font-family: inherit;
+    background: white;
+    cursor: pointer;
+    width: 100%;
+  }
+  .course-selector-row select:focus {
+    outline: 2px solid var(--gold);
+    outline-offset: -1px;
+  }
+
+  .footer-actions {
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid var(--navy-mid);
+    text-align: center;
+  }
+
+  @media (max-width: 640px) {
+    body { padding: 12px; }
+    h1 { font-size: 22px; }
+    .step { padding: 16px; }
+    .scorecard th, .scorecard td,
+    .course-setup th, .course-setup td { min-width: 36px; font-size: 12px; }
+    .scorecard td.name-cell, .scorecard th.name-cell,
+    .course-setup td.row-label, .course-setup th.row-label { min-width: 110px; font-size: 12px; }
+    .result-row .total { font-size: 20px; }
+    .result-row.winner .total { font-size: 24px; }
+
+    /* Players & handicaps: tighten and ensure no overlap on narrow phones */
+    .players-grid { grid-template-columns: 1fr; gap: 8px; }
+    .player-card { padding: 8px; gap: 7px; }
+    .player-card .player-input { padding: 9px 10px; font-size: 15px; }
+    .player-card .hcp-input { width: 52px; padding: 9px 4px; font-size: 15px; }
+    .hcp-label { font-size: 9px; }
+    .player-index { width: 18px; font-size: 11px; }
+    .count-controls { padding: 10px 12px; gap: 8px; }
+    .count-controls .hint { margin-top: 4px; }
+  }
+  @media (max-width: 360px) {
+    .player-card { gap: 6px; padding: 7px; }
+    .hcp-label { display: none; }
+    .player-card .hcp-input { width: 48px; }
+    .player-index { display: none; }
+  }
+
+  /* Sync bar */
+  .sync-bar {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+    color: white;
+    font-size: 13px;
+  }
+  .sync-bar-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .sync-status { display: flex; align-items: center; gap: 8px; }
+  .sync-dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--gray-500);
+    flex-shrink: 0;
+    transition: background 0.2s;
+  }
+  .sync-dot.on { background: #4ade80; box-shadow: 0 0 8px rgba(74,222,128,0.6); }
+  .sync-dot.err { background: #ef4444; }
+  .sync-dot.pending { background: var(--gold); animation: syncpulse 1s ease-in-out infinite; }
+  @keyframes syncpulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+  .sync-bar button {
+    background: transparent;
+    color: white;
+    border: 1px solid rgba(255,255,255,0.25);
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .sync-bar button:hover { background: rgba(255,255,255,0.1); }
+  .sync-settings { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); }
+  .sync-settings.hidden { display: none; }
+  .hidden { display: none !important; }
+  .sync-settings .sync-help {
+    font-size: 12px;
+    color: #c8d3e0;
+    margin: 0 0 10px 0;
+    line-height: 1.5;
+  }
+  .sync-settings .sync-help a { color: var(--gold); }
+  .sync-settings .sync-fields { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+  .sync-settings input {
+    flex: 1 1 200px;
+    min-width: 0;
+    padding: 8px 10px;
+    border: 1px solid rgba(255,255,255,0.25);
+    background: rgba(0,0,0,0.25);
+    color: white;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 13px;
+  }
+  .sync-settings input::placeholder { color: #94a3b8; }
+  .sync-settings .sync-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+
+  /* ============ Fancourt Trophy CSS ============ */
+  .header-title {
+    color: white; font-size: 32px; font-weight: 700; letter-spacing: 0.5px;
+    text-align: center; margin: 0;
+  }
+  @media (max-width: 640px) { .header-title { font-size: 24px; } }
+
+  .team-badge {
+    display: inline-block; padding: 2px 8px; border-radius: 10px;
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.5px; color: white; flex-shrink: 0;
+  }
+  .team-badge-a { background: #1d4ed8; }
+  .team-badge-b { background: #b91c1c; }
+  .player-card.team-a { border-left: 4px solid #1d4ed8; }
+  .player-card.team-b { border-left: 4px solid #b91c1c; }
+
+  .day-block { margin-bottom: 16px; }
+  .day-header {
+    font-size: 15px; font-weight: 700; color: var(--green-dark);
+    margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid var(--gray-200);
+  }
+  .match-card {
+    background: var(--gray-50); border: 1px solid var(--gray-200);
+    border-radius: 6px; padding: 10px 14px; margin-bottom: 8px;
+    display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; align-items: center;
+  }
+  .match-card.match-done { background: var(--gold-light); border-color: var(--gold); }
+  .match-label {
+    grid-column: 1 / 2; font-size: 11px; text-transform: uppercase;
+    letter-spacing: 0.4px; color: var(--gray-500); font-weight: 700;
+  }
+  .match-teams { grid-column: 1 / 2; display: flex; flex-direction: column; gap: 3px; }
+  .match-team-line { font-size: 13px; color: var(--gray-900); display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .match-select {
+    padding: 4px 6px;
+    border: 1px solid var(--gray-300);
+    border-radius: 4px;
+    font-size: 13px;
+    font-family: inherit;
+    background: white;
+    cursor: pointer;
+    max-width: 100%;
+  }
+  .match-select-a { border-left: 3px solid #1d4ed8; }
+  .match-select-b { border-left: 3px solid #b91c1c; }
+  .match-select:focus { outline: 2px solid var(--gold); outline-offset: -1px; }
+  .match-team-line .amp { color: var(--gray-500); font-weight: 700; font-size: 12px; }
+  .vs { font-size: 10px; color: var(--gray-500); font-weight: 700; text-transform: uppercase; }
+  .team-a-tag, .team-b-tag {
+    display: inline-block; width: 18px; height: 18px; border-radius: 50%;
+    color: white; font-size: 10px; font-weight: 700; text-align: center;
+    line-height: 18px; flex-shrink: 0;
+  }
+  .team-a-tag { background: #1d4ed8; }
+  .team-b-tag { background: #b91c1c; }
+  .match-status {
+    grid-column: 2 / 3; grid-row: 1 / 4; font-size: 13px; font-weight: 600;
+    color: var(--gray-700); text-align: right; align-self: center; min-width: 110px;
+  }
+  .match-status.status-a { color: #1d4ed8; }
+  .match-status.status-b { color: #b91c1c; }
+  .match-status.status-halved { color: var(--gold-dark); }
+
+  .team-lb { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+  .team-lb-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 16px; border-radius: 6px; color: white; font-weight: 600;
+  }
+  .team-a-bg { background: #1d4ed8; }
+  .team-b-bg { background: #b91c1c; }
+  .team-lb-lead { box-shadow: 0 0 0 3px var(--gold), 0 4px 10px rgba(0,0,0,0.15); }
+  .team-lb-name { font-size: 16px; }
+  .team-lb-pts { font-size: 22px; font-weight: 700; }
+  .team-lb-summary {
+    font-size: 12px; color: var(--gray-500); text-align: center; margin-top: 4px;
+  }
+
+  table.leaderboard { border-collapse: collapse; width: 100%; font-size: 13px; margin-top: 6px; }
+  .leaderboard th, .leaderboard td { border: 1px solid var(--gray-200); padding: 6px 8px; text-align: center; }
+  .leaderboard th {
+    background: var(--green-light); color: var(--green-dark);
+    font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px;
+  }
+  .leaderboard td.lb-name { text-align: left; font-weight: 500; min-width: 120px; }
+  .leaderboard th.lb-total, .leaderboard td.lb-total {
+    background: var(--green-light); font-weight: 700; color: var(--green-dark);
+  }
+  .leaderboard tr.lb-leader td { background: var(--gold-light); }
+  .leaderboard tr.lb-leader td.lb-total { background: var(--gold); color: white; }
+  .team-tag {
+    display: inline-block; padding: 1px 6px; border-radius: 8px;
+    color: white; font-size: 10px; font-weight: 700;
+  }
+  .team-tag-a { background: #1d4ed8; }
+  .team-tag-b { background: #b91c1c; }
+
+
+  /* ============ Collapsible sections & rounds ============ */
+  .step h2 {
+    cursor: pointer;
+    user-select: none;
+  }
+  .step h2::after {
+    content: "\25BE";  /* ▾ */
+    margin-left: auto;
+    color: var(--green-dark);
+    font-size: 26px;
+    line-height: 1;
+    transition: transform 0.2s;
+    padding-left: 8px;
+    display: inline-block;
+    width: 32px;
+    height: 32px;
+    text-align: center;
+    border-radius: 6px;
+    background: var(--gray-100);
+  }
+  .step h2:hover::after { background: var(--gray-200); }
+  .step.collapsed h2::after {
+    transform: rotate(-90deg);
+  }
+  .step.collapsed > *:not(h2) {
+    display: none !important;
+  }
+  .step h2:hover { opacity: 0.85; }
+
+  .course-section > h3 {
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    padding-right: 22px;
+  }
+  .course-section > h3 { padding-right: 40px; }
+  .course-section > h3::after {
+    content: "\25BE";
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--green-dark);
+    font-size: 22px;
+    line-height: 1;
+    transition: transform 0.2s;
+    width: 28px;
+    height: 28px;
+    text-align: center;
+    border-radius: 6px;
+    background: var(--gray-100);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .course-section > h3:hover::after { background: var(--gray-200); }
+  .course-section.collapsed > h3::after {
+    transform: translateY(-50%) rotate(-90deg);
+  }
+  .course-section.collapsed > *:not(h3) {
+    display: none !important;
+  }
+  .course-section > h3:hover { opacity: 0.85; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="header-title">Fancourt 2026</div>
+    <h1 class="sr-only">Fancourt 2026</h1>
+    <div class="subtitle">3-Day Team Matchplay &middot; Team A vs Team B &middot; Fancourt</div>
+  </header>
+
+  <section class="sync-bar">
+    <div class="sync-bar-top">
+      <div class="sync-status">
+        <span class="sync-dot" id="sync-dot"></span>
+        <span id="sync-label">Sync: off</span>
+      </div>
+      <button onclick="refreshSyncNow()" type="button" id="sync-refresh-btn">Refresh now</button>
+    </div>
+  </section>
+
+  <!-- STEP 1: Players + Handicaps -->
+  <section class="step">
+    <h2><span class="step-num">1</span> Players &amp; Teams</h2>
+    <input type="hidden" id="player-count-input" value="8">
+    <div class="players-grid" id="players-list"></div>
+    <div class="help-text">Team A (first 4) plays Team B (last 4). Names are editable — the pairing schedule uses each player's <em>slot</em>, so if you rename a slot the schedule follows the new name automatically. Handicaps are set per course in Step 3.</div>
+  </section>
+
+  <!-- STEP 2: Match Schedule -->
+  <section class="step">
+    <h2><span class="step-num">2</span> Match schedule (best-ball match play)</h2>
+    <div class="help-text">Editable pairings for the 3 days. Each match compares each pair's best-ball stableford on every hole. Whoever wins the most holes wins the match.</div>
+    <div id="match-schedule-display"></div>
+  </section>
+
+  <!-- STEP 3: Course Setup -->
+  <section class="step">
+    <h2><span class="step-num">3</span> Course setup &mdash; par &amp; stroke index</h2>
+    <input type="hidden" id="round-count-input" value="3">
+    <div class="info-box">
+      Round 1 = Fancourt Montagu, Round 2 = Fancourt Outeniqua, Round 3 = Fancourt The Links.
+      Edit par or stroke index if your printed scorecard differs.
+      <strong>SI 1 = hardest hole, SI 18 = easiest.</strong>
+    </div>
+    <div class="course-selector-row" id="course-selectors-row">
+      <div data-round-slot="round1">
+        <label for="course-select-round1">Round 1</label>
+        <select id="course-select-round1"></select>
+      </div>
+      <div data-round-slot="round2">
+        <label for="course-select-round2">Round 2</label>
+        <select id="course-select-round2"></select>
+      </div>
+      <div data-round-slot="round3" class="hidden">
+        <label for="course-select-round3">Round 3</label>
+        <select id="course-select-round3"></select>
+      </div>
+      <div data-round-slot="round4" class="hidden">
+        <label for="course-select-round4">Round 4</label>
+        <select id="course-select-round4"></select>
+      </div>
+    </div>
+    <div class="course-section" data-round-slot="round1">
+      <h3 id="course-setup-title-round1">Round 1</h3>
+      <div class="scorecard-wrap"><table class="course-setup" id="course-setup-round1"></table></div>
+    </div>
+    <div class="course-section" data-round-slot="round2">
+      <h3 id="course-setup-title-round2">Round 2</h3>
+      <div class="scorecard-wrap"><table class="course-setup" id="course-setup-round2"></table></div>
+    </div>
+    <div class="course-section hidden" data-round-slot="round3">
+      <h3 id="course-setup-title-round3">Round 3</h3>
+      <div class="scorecard-wrap"><table class="course-setup" id="course-setup-round3"></table></div>
+    </div>
+    <div class="course-section hidden" data-round-slot="round4">
+      <h3 id="course-setup-title-round4">Round 4</h3>
+      <div class="scorecard-wrap"><table class="course-setup" id="course-setup-round4"></table></div>
+    </div>
+  </section>
+
+  <!-- STEP 4: Scores -->
+  <section class="step">
+    <h2><span class="step-num">4</span> Gross strokes</h2>
+    <div class="help-text">Enter each player's course handicap (next to their name) and gross strokes per hole. Stableford points are calculated automatically. Leaderboards below update live as you type.</div>
+    <div class="course-section" data-round-slot="round1">
+      <h3 id="scorecard-title-round1">Round 1 &mdash; holes 1&ndash;18</h3>
+      <div class="scorecard-wrap"><table class="scorecard" id="scorecard-round1"></table></div>
+    </div>
+    <div class="course-section" data-round-slot="round2">
+      <h3 id="scorecard-title-round2">Round 2 &mdash; holes 1&ndash;18</h3>
+      <div class="scorecard-wrap"><table class="scorecard" id="scorecard-round2"></table></div>
+    </div>
+    <div class="course-section hidden" data-round-slot="round3">
+      <h3 id="scorecard-title-round3">Round 3 &mdash; holes 1&ndash;18</h3>
+      <div class="scorecard-wrap"><table class="scorecard" id="scorecard-round3"></table></div>
+    </div>
+    <div class="course-section hidden" data-round-slot="round4">
+      <h3 id="scorecard-title-round4">Round 4 &mdash; holes 1&ndash;18</h3>
+      <div class="scorecard-wrap"><table class="scorecard" id="scorecard-round4"></table></div>
+    </div>
+  </section>
+
+  <!-- STEP 5: Leaderboards -->
+  <section class="step">
+    <h2><span class="step-num">5</span> Leaderboards</h2>
+    <div class="help-text">Both leaderboards update live as scores are entered.</div>
+    <h3 style="color: var(--green-dark); font-size: 15px; margin-top: 14px;">Team competition (match play points)</h3>
+    <div id="team-leaderboard"></div>
+    <h3 style="color: var(--green-dark); font-size: 15px; margin-top: 16px;">Individual competition (total stableford)</h3>
+    <div id="individual-leaderboard"></div>
+  </section>
+
+  <section class="sync-bar admin-bar">
+    <div class="sync-bar-top">
+      <div class="sync-status">
+        <span style="font-weight:600;">Admin tools</span>
+      </div>
+      <button onclick="toggleAdminPanel()" type="button" id="admin-toggle-btn">Show</button>
+    </div>
+    <div class="sync-settings hidden" id="admin-panel">
+      <div id="admin-locked">
+        <p class="sync-help">Enter the admin password to unlock destructive actions.</p>
+        <div class="sync-fields">
+          <input type="password" id="admin-pwd" placeholder="Password" autocomplete="off" autocapitalize="off" spellcheck="false" onkeydown="if(event.key==='Enter'){event.preventDefault();unlockAdmin();}">
+          <button onclick="unlockAdmin()" type="button">Unlock</button>
+        </div>
+        <p id="admin-pwd-err" class="sync-help" style="color:#fca5a5; display:none; margin-top:6px;">Incorrect password.</p>
+      </div>
+      <div id="admin-unlocked" class="hidden">
+        <p class="sync-help">
+          Admin unlocked for this session. Any reset pushes to every connected device within a couple of seconds.
+          <button onclick="lockAdmin()" type="button" style="margin-left:6px;">Lock</button>
+        </p>
+        <div class="sync-actions">
+          <button onclick="clearScores()" type="button">Clear all scores</button>
+          <button onclick="fillRandomScores()" type="button">Fill random strokes (testing)</button>
+          <button onclick="resetAll()" type="button">Reset everything (names, handicaps, scores &amp; draws)</button>
+          <button onclick="resetMatchSchedule()" type="button">Reset match schedule to defaults</button>
+          <button onclick="toggleSyncSettings()" type="button">Sync settings</button>
+        </div>
+        <div class="sync-settings hidden" id="sync-settings">
+          <p class="sync-help">
+            Sync is on by default for everyone using this link.
+            Override the shared bin only if you want this device on a private one &mdash;
+            sign up at <a href="https://jsonbin.io" target="_blank" rel="noopener">jsonbin.io</a>, create a bin, then paste its ID and X-Master-Key below.
+          </p>
+          <div class="sync-fields">
+            <input type="text" id="sync-bin-id" placeholder="Bin ID" autocomplete="off" autocapitalize="off" spellcheck="false">
+            <input type="text" id="sync-master-key" placeholder="X-Master-Key" autocomplete="off" autocapitalize="off" spellcheck="false">
+          </div>
+          <div class="sync-actions">
+            <button onclick="connectSync()" type="button">Connect</button>
+            <button onclick="pushLocalToRemote()" type="button">Push local data now</button>
+            <button onclick="disconnectSync()" type="button">Disconnect</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+const DEFAULT_PLAYERS = [
+  "Ewan Scott",         // 0 - Team A
+  "Grant Wilson",       // 1 - Team A
+  "James O'Haughey",    // 2 - Team A
+  "Paul Kent",          // 3 - Team A
+  "Gavin Bye",          // 4 - Team B
+  "Warren Blount",      // 5 - Team B
+  "Neil Isdale",        // 6 - Team B
+  "Jamie Scott"         // 7 - Team B
+];
+const MIN_PLAYERS = 8;
+const MAX_PLAYERS = 8;
+const TEAM_A_INDICES = [0, 1, 2, 3];
+const TEAM_B_INDICES = [4, 5, 6, 7];
+const TEAM_NAMES = { A: "Team A", B: "Team B" };
+function teamOfPlayer(pi) { return TEAM_A_INDICES.indexOf(pi) >= 0 ? "A" : "B"; }
+const DEFAULT_MATCH_SCHEDULE = [
+  { day: 1, roundIdx: 0, matches: [
+    { teamA: [0, 1], teamB: [4, 5] },
+    { teamA: [2, 3], teamB: [6, 7] }
+  ]},
+  { day: 2, roundIdx: 1, matches: [
+    { teamA: [0, 2], teamB: [4, 7] },
+    { teamA: [1, 3], teamB: [5, 6] }
+  ]},
+  { day: 3, roundIdx: 2, matches: [
+    { teamA: [1, 2], teamB: [7, 5] },
+    { teamA: [0, 3], teamB: [4, 6] }
+  ]}
+];
+function cloneSchedule(sched) { return JSON.parse(JSON.stringify(sched)); }
+
+const STORAGE_KEY = "fancourt_trophy_state_v2";
+const STATE_VERSION = 2;  // Bump to invalidate all local + remote state after schema change
+const COURSES = [
+  { id: "round1", name: "Round 1" },
+  { id: "round2", name: "Round 2" },
+  { id: "round3", name: "Round 3" },
+  { id: "round4", name: "Round 4" }
+];
+const HOLES = 18;
+const MIN_ROUNDS = 3;
+const MAX_ROUNDS = 3;
+const DEFAULT_ROUNDS = 3;
+function getActiveCourses() {
+  const n = Math.max(MIN_ROUNDS, Math.min(MAX_ROUNDS, Number(state && state.roundCount) || DEFAULT_ROUNDS));
+  return COURSES.slice(0, n);
+}
+
+// Real men's-tee scorecards (verify on the day).
+const LINKS_PAR = [4,4,5,3,4,5,3,4,4,  4,4,4,5,3,4,5,3,4];
+const LINKS_SI  = [5,3,7,15,13,11,17,9,1,  12,8,16,6,14,10,4,18,2];
+const BAY_PAR   = [4,4,3,4,4,5,5,3,4,  3,4,4,4,3,5,4,3,5];
+const BAY_SI    = [13,5,11,7,1,17,9,15,3,  16,10,4,8,18,2,6,14,12];
+
+// Catalog of pre-loaded courses. Par/SI sourced from publicly-listed scorecards
+// (Hole19 / 18Birdies). Verify against the printed scorecard before the round.
+const COURSE_CATALOG = [
+  { key: "st_francis_links",   name: "St Francis Links",
+    par: LINKS_PAR.slice(),    si: LINKS_SI.slice() },
+  { key: "st_francis_bay",     name: "St Francis Bay GC",
+    par: BAY_PAR.slice(),      si: BAY_SI.slice() },
+  { key: "fancourt_links",     name: "Fancourt — The Links",
+    par: [4,3,4,4,5,4,4,3,5,  4,3,4,5,4,4,5,3,5],
+    si:  [16,6,2,8,18,14,4,12,10,  3,17,1,13,15,5,7,9,11] },
+  { key: "fancourt_montagu",   name: "Fancourt — Montagu",
+    par: [4,3,4,5,4,4,4,3,5,  5,4,3,4,4,4,4,3,5],
+    si:  [11,15,3,17,9,1,5,7,13,  12,16,14,2,6,4,18,8,10] },
+  { key: "fancourt_outeniqua", name: "Fancourt — Outeniqua",
+    par: [4,5,4,3,4,4,3,5,4,  4,5,3,4,4,3,4,5,4],
+    si:  [17,15,3,7,5,13,9,11,1,  12,8,14,6,2,16,4,18,10] },
+  { key: "custom",             name: "Custom Course",
+    par: [4,4,4,4,4,4,4,4,4,  4,4,4,4,4,4,4,4,4],
+    si:  [1,2,3,4,5,6,7,8,9,  10,11,12,13,14,15,16,17,18] }
+];
+function findCatalogEntry(key) {
+  return COURSE_CATALOG.find(c => c.key === key) || null;
+}
+const DEFAULT_COURSE_KEYS = {
+  round1: "fancourt_montagu",
+  round2: "fancourt_outeniqua",
+  round3: "fancourt_links",
+  round4: "custom"
+};
+
+function makeEmptyScoresFor(playerCount) {
+  const s = {};
+  COURSES.forEach(c => {
+    s[c.id] = [];
+    for (let i = 0; i < playerCount; i++) s[c.id].push(Array(HOLES).fill(""));
+  });
+  return s;
+}
+function makeCourseInfoFromCatalog(catalogKey) {
+  const entry = findCatalogEntry(catalogKey) || COURSE_CATALOG[0];
+  return {
+    catalogKey: entry.key,
+    name: entry.name,
+    par: entry.par.slice(),
+    si: entry.si.slice()
+  };
+}
+function makeDefaultCourseInfo() {
+  const ci = {};
+  COURSES.forEach(c => {
+    ci[c.id] = makeCourseInfoFromCatalog(DEFAULT_COURSE_KEYS[c.id] || COURSE_CATALOG[0].key);
+  });
+  return ci;
+}
+function isPlaceholderCourseInfo(info) {
+  if (!info || !Array.isArray(info.par) || !Array.isArray(info.si)) return true;
+  const allParFour = info.par.every(p => Number(p) === 4);
+  const siSequential = info.si.every((s, i) => Number(s) === i + 1);
+  return allParFour && siSequential;
+}
+
+function isGhostName(name) {
+  return typeof name === "string" && name.trim().toLowerCase() === "ghost";
+}
+function isPlayerGhost(pi) {
+  return isGhostName(state.players[pi]);
+}
+
+// ---------- Load / init state ----------
+let state;
+try {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  state = raw ? JSON.parse(raw) : null;
+} catch (e) { state = null; }
+if (state) migrateCourseKeys(state);
+
+function makeHandicapsByCourse(playerCount) {
+  const h = {};
+  COURSES.forEach(c => { h[c.id] = Array(playerCount).fill(0); });
+  return h;
+}
+
+function freshState() {
+  return {
+    schemaVersion: STATE_VERSION,
+    players: DEFAULT_PLAYERS.slice(),
+    handicapsByCourse: makeHandicapsByCourse(DEFAULT_PLAYERS.length),
+    courseInfo: makeDefaultCourseInfo(),
+    scores: makeEmptyScoresFor(DEFAULT_PLAYERS.length),
+    roundCount: DEFAULT_ROUNDS,
+    matchSchedule: cloneSchedule(DEFAULT_MATCH_SCHEDULE),
+    pairs: null,
+    oddsEvens: null,
+    revealed: false,
+    _updatedAt: 0
+  };
+}
+
+let stateWasJustReset = false;
+if (!state || !Array.isArray(state.players) || state.players.length !== MAX_PLAYERS || state.schemaVersion !== STATE_VERSION) {
+  state = freshState();
+  stateWasJustReset = true;
+}
+// Ensure matchSchedule exists (older schema v2 states may not have it)
+if (!Array.isArray(state.matchSchedule)) {
+  state.matchSchedule = cloneSchedule(DEFAULT_MATCH_SCHEDULE);
+}
+// Backfill / repair handicaps. Migrate old single-array shape to per-course.
+if (Array.isArray(state.handicaps) && !state.handicapsByCourse) {
+  state.handicapsByCourse = { links: state.handicaps.slice(), bay: state.handicaps.slice() };
+  delete state.handicaps;
+}
+if (!state.handicapsByCourse) state.handicapsByCourse = makeHandicapsByCourse(state.players.length);
+COURSES.forEach(c => {
+  if (!Array.isArray(state.handicapsByCourse[c.id])) state.handicapsByCourse[c.id] = [];
+  while (state.handicapsByCourse[c.id].length < state.players.length) state.handicapsByCourse[c.id].push(0);
+  state.handicapsByCourse[c.id] = state.handicapsByCourse[c.id].slice(0, state.players.length);
+});
+if (!state.scores) state.scores = makeEmptyScoresFor(state.players.length);
+COURSES.forEach(c => {
+  if (!Array.isArray(state.scores[c.id])) state.scores[c.id] = [];
+  while (state.scores[c.id].length < state.players.length) state.scores[c.id].push(Array(HOLES).fill(""));
+  state.scores[c.id] = state.scores[c.id].slice(0, state.players.length);
+});
+if (!state.courseInfo) state.courseInfo = makeDefaultCourseInfo();
+COURSES.forEach(c => {
+  const info = state.courseInfo[c.id];
+  if (!info || !Array.isArray(info.par) || !Array.isArray(info.si)) {
+    state.courseInfo[c.id] = makeCourseInfoFromCatalog(DEFAULT_COURSE_KEYS[c.id] || COURSE_CATALOG[0].key);
+    return;
+  }
+  if (!info.catalogKey) info.catalogKey = DEFAULT_COURSE_KEYS[c.id] || "custom";
+  if (!info.name) {
+    const entry = findCatalogEntry(info.catalogKey);
+    info.name = entry ? entry.name : (c.name || c.id);
+  }
+});
+
+function saveState() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+}
+
+// Reject remote states that don't fit this app's fixed shape
+// (this app requires exactly 8 players; the shared sync bin may hold state from another app).
+function isRemoteCompatible(remote) {
+  return !!(remote
+    && Array.isArray(remote.players)
+    && remote.players.length === MAX_PLAYERS
+    && remote.schemaVersion === STATE_VERSION);
+}
+
+// Migrate older state shapes to the current one.
+function migrateCourseKeys(s) {
+  if (!s) return;
+  // v3 used "links" and "bay" keys — rename to round1 / round2
+  ["courseInfo", "scores", "handicapsByCourse"].forEach(key => {
+    if (s[key] && (s[key].links || s[key].bay)) {
+      const merged = {};
+      if (s[key].links) merged.round1 = s[key].links;
+      if (s[key].bay)   merged.round2 = s[key].bay;
+      Object.keys(s[key]).forEach(k => {
+        if (k !== "links" && k !== "bay" && !(k in merged)) merged[k] = s[key][k];
+      });
+      s[key] = merged;
+    }
+  });
+  // Ensure roundCount is set within bounds
+  if (typeof s.roundCount !== "number" || s.roundCount < MIN_ROUNDS || s.roundCount > MAX_ROUNDS) {
+    s.roundCount = DEFAULT_ROUNDS;
+  }
+}
+
+// ---------- Stableford math ----------
+function strokesReceivedOnHole(hcp, si) {
+  hcp = Math.round(Number(hcp) || 0);
+  if (hcp >= 0) {
+    return Math.floor(hcp / 18) + (si <= (hcp % 18) ? 1 : 0);
+  }
+  const n = -hcp;
+  return (si >= 19 - n) ? -1 : 0;
+}
+
+function stablefordPoints(strokes, par, hcp, si) {
+  const s = parseInt(strokes);
+  if (!s || s <= 0) return 0;
+  const received = strokesReceivedOnHole(hcp, si);
+  const net = s - received;
+  const diff = net - par;
+  const pts = 2 - diff;
+  return Math.max(0, pts);
+}
+
+function fieldAverageStablefordOnHole(courseId, holeIdx) {
+  let sum = 0, n = 0;
+  state.players.forEach((_, pi) => {
+    if (isPlayerGhost(pi)) return;
+    sum += rawPlayerHoleStableford(pi, courseId, holeIdx);
+    n++;
+  });
+  return n ? sum / n : 0;
+}
+
+function rawPlayerHoleStableford(pi, courseId, h) {
+  const hcp = (state.handicapsByCourse[courseId] || [])[pi] || 0;
+  const info = state.courseInfo[courseId];
+  return stablefordPoints(state.scores[courseId][pi][h], info.par[h], hcp, info.si[h]);
+}
+
+function playerHoleStableford(pi, courseId, h) {
+  if (isPlayerGhost(pi)) return fieldAverageStablefordOnHole(courseId, h);
+  return rawPlayerHoleStableford(pi, courseId, h);
+}
+
+function playerCourseStablefordTotal(pi, courseId) {
+  let total = 0;
+  for (let h = 0; h < HOLES; h++) total += playerHoleStableford(pi, courseId, h);
+  return total;
+}
+
+// ---------- STEP 1: Players ----------
+function renderPlayers() {
+  const countInp = document.getElementById("player-count-input");
+  countInp.value = state.players.length;
+  // (Re)bind change listener once.
+  if (!countInp._bound) {
+    countInp.addEventListener("change", () => {
+      setPlayerCount(parseInt(countInp.value) || state.players.length);
+    });
+    countInp._bound = true;
+  }
+
+  const c = document.getElementById("players-list");
+  c.innerHTML = "";
+  state.players.forEach((name, i) => {
+    const team = teamOfPlayer(i);
+    const wrap = document.createElement("div");
+    wrap.className = "player-card team-" + team.toLowerCase();
+
+    const badge = document.createElement("span");
+    badge.className = "team-badge team-badge-" + team.toLowerCase();
+    badge.textContent = team;
+
+    const nameInp = document.createElement("input");
+    nameInp.className = "player-input";
+    nameInp.value = name;
+    nameInp.placeholder = "(blank)";
+    nameInp.addEventListener("input", () => {
+      state.players[i] = nameInp.value;
+      saveState();
+      updateNameCells();
+      refreshAllStablefordDisplays();
+    });
+
+    wrap.appendChild(badge);
+    wrap.appendChild(nameInp);
+    c.appendChild(wrap);
+  });
+}
+
+function setPlayerCount(newCount) {
+  newCount = Math.max(MIN_PLAYERS, Math.min(MAX_PLAYERS, Math.floor(Number(newCount) || 0)));
+  const oldCount = state.players.length;
+  if (newCount === oldCount) return;
+
+  if (newCount < oldCount) {
+    const dropping = state.players.slice(newCount);
+    const droppingHasData = dropping.some((nm, j) => {
+      const pi = newCount + j;
+      const hasName = (nm || "").trim() !== "";
+      const hasHcp = COURSES.some(c => Number(state.handicapsByCourse[c.id][pi]) !== 0);
+      const hasScores = COURSES.some(c => state.scores[c.id][pi].some(v => v !== "" && v != null));
+      return hasName || hasHcp || hasScores;
+    });
+    if (droppingHasData && !confirm("Removing the last " + (oldCount - newCount) + " player(s) will delete their names, handicaps, and scores. Continue?")) {
+      document.getElementById("player-count-input").value = oldCount;
+      return;
+    }
+    state.players = state.players.slice(0, newCount);
+    COURSES.forEach(c => {
+      state.scores[c.id] = state.scores[c.id].slice(0, newCount);
+      state.handicapsByCourse[c.id] = state.handicapsByCourse[c.id].slice(0, newCount);
+    });
+  } else {
+    for (let i = oldCount; i < newCount; i++) {
+      state.players.push("");
+      COURSES.forEach(c => {
+        state.scores[c.id].push(Array(HOLES).fill(""));
+        state.handicapsByCourse[c.id].push(0);
+      });
+    }
+  }
+
+  // Player set changed — invalidate any prior draws.
+  state.pairs = null;
+  state.oddsEvens = null;
+  state.revealed = false;
+  saveState();
+
+  renderPlayers();
+  renderScorecards();
+  document.getElementById("pairs-display").innerHTML = "";
+  document.getElementById("oe-display").innerHTML = "";
+  document.getElementById("results-display").innerHTML = "";
+  document.getElementById("btn-oe").disabled = true;
+  document.getElementById("btn-reveal").disabled = true;
+  setStatus("status-pairs", "Not drawn", false);
+  setStatus("status-oe", "Not drawn", false);
+}
+
+function updateNameCells() {
+  COURSES.forEach(course => {
+    state.players.forEach((name, pi) => {
+      const cell = document.getElementById("namecell-" + course.id + "-" + pi);
+      if (cell) {
+        const nameDiv = cell.querySelector(".score-name");
+        if (nameDiv) renderScoreName(nameDiv, pi);
+        const hcpInp = cell.querySelector(".hcp-input-mini");
+        if (hcpInp) hcpInp.disabled = isGhostName(name);
+      }
+      const row = document.getElementById("scorerow-" + course.id + "-" + pi);
+      if (row) row.classList.toggle("ghost-row", isGhostName(name));
+      for (let h = 0; h < HOLES; h++) {
+        const inp = document.getElementById("stroke-" + course.id + "-" + pi + "-" + h);
+        if (inp) inp.disabled = isGhostName(name);
+      }
+    });
+  });
+}
+
+function displayName(pi) {
+  const n = (state.players[pi] || "").trim();
+  if (n === "") return "Player " + (pi + 1);
+  return n;
+}
+function displayNameWithTeam(pi) {
+  return displayName(pi) + " (" + teamOfPlayer(pi) + ")";
+}
+
+// ---------- STEP 2: Course setup ----------
+function applyCatalogCourse(slotId, catalogKey) {
+  const entry = findCatalogEntry(catalogKey);
+  if (!entry) return;
+  state.courseInfo[slotId] = {
+    catalogKey: entry.key,
+    name: entry.name,
+    par: entry.par.slice(),
+    si: entry.si.slice()
+  };
+  saveState();
+  refreshCourseTitles();
+  renderCourseSetup();
+  renderScorecards();
+  if (state.revealed) revealWinners();
+}
+function refreshCourseTitles() {
+  COURSES.forEach(c => {
+    const info = state.courseInfo[c.id];
+    const name = (info && info.name) || c.name || c.id;
+    const setupT = document.getElementById("course-setup-title-" + c.id);
+    if (setupT) setupT.textContent = name;
+    const scoreT = document.getElementById("scorecard-title-" + c.id);
+    if (scoreT) scoreT.textContent = name + " — holes 1–18";
+    const sel = document.getElementById("course-select-" + c.id);
+    if (sel && info && info.catalogKey) sel.value = info.catalogKey;
+  });
+}
+function renderCourseSelectors() {
+  COURSES.forEach(c => {
+    const sel = document.getElementById("course-select-" + c.id);
+    if (!sel) return;
+    if (!sel._populated) {
+      COURSE_CATALOG.forEach(entry => {
+        const opt = document.createElement("option");
+        opt.value = entry.key;
+        opt.textContent = entry.name;
+        sel.appendChild(opt);
+      });
+      sel.addEventListener("change", () => applyCatalogCourse(c.id, sel.value));
+      sel._populated = true;
+    }
+    const info = state.courseInfo[c.id];
+    if (info && info.catalogKey) sel.value = info.catalogKey;
+  });
+}
+
+function renderCourseSetup() {
+  COURSES.forEach(course => {
+    const table = document.getElementById("course-setup-" + course.id);
+    const info = state.courseInfo[course.id];
+    table.innerHTML = "";
+    const thead = document.createElement("thead");
+    const headerRow = document.createElement("tr");
+    const labelTh = document.createElement("th");
+    labelTh.className = "row-label";
+    labelTh.textContent = "Hole";
+    headerRow.appendChild(labelTh);
+    for (let h = 1; h <= HOLES; h++) {
+      const th = document.createElement("th");
+      th.textContent = h;
+      headerRow.appendChild(th);
+    }
+    const totTh = document.createElement("th");
+    totTh.className = "total-cell";
+    totTh.textContent = "Tot";
+    headerRow.appendChild(totTh);
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+
+    const tbody = document.createElement("tbody");
+
+    const parRow = document.createElement("tr");
+    const parLbl = document.createElement("td");
+    parLbl.className = "row-label";
+    parLbl.textContent = "Par";
+    parRow.appendChild(parLbl);
+    for (let h = 0; h < HOLES; h++) {
+      const td = document.createElement("td");
+      const inp = document.createElement("input");
+      inp.type = "number";
+      inp.min = 3;
+      inp.max = 6;
+      inp.inputMode = "numeric";
+      inp.value = info.par[h];
+      inp.addEventListener("input", () => {
+        info.par[h] = parseInt(inp.value) || 0;
+        saveState();
+        refreshParTotal(course.id);
+        renderScorecards();  // rebuild scorecard headers to reflect new par
+        if (state.revealed) revealWinners();
+      });
+      td.appendChild(inp);
+      parRow.appendChild(td);
+    }
+    const parTotTd = document.createElement("td");
+    parTotTd.className = "total-cell";
+    parTotTd.id = "par-total-" + course.id;
+    parTotTd.textContent = info.par.reduce((a,b)=>a+(parseInt(b)||0),0);
+    parRow.appendChild(parTotTd);
+    tbody.appendChild(parRow);
+
+    const siRow = document.createElement("tr");
+    const siLbl = document.createElement("td");
+    siLbl.className = "row-label";
+    siLbl.textContent = "Stroke index";
+    siRow.appendChild(siLbl);
+    for (let h = 0; h < HOLES; h++) {
+      const td = document.createElement("td");
+      const inp = document.createElement("input");
+      inp.type = "number";
+      inp.min = 1;
+      inp.max = 18;
+      inp.inputMode = "numeric";
+      inp.value = info.si[h];
+      inp.addEventListener("input", () => {
+        info.si[h] = parseInt(inp.value) || 0;
+        saveState();
+        renderScorecards();  // rebuild scorecard headers to reflect new SI
+        if (state.revealed) revealWinners();
+      });
+      td.appendChild(inp);
+      siRow.appendChild(td);
+    }
+    const siTotTd = document.createElement("td");
+    siTotTd.className = "total-cell";
+    siTotTd.textContent = "—";
+    siRow.appendChild(siTotTd);
+    tbody.appendChild(siRow);
+
+    table.appendChild(tbody);
+  });
+}
+
+function refreshParTotal(courseId) {
+  const el = document.getElementById("par-total-" + courseId);
+  if (el) el.textContent = state.courseInfo[courseId].par.reduce((a,b)=>a+(parseInt(b)||0),0);
+}
+
+// ---------- STEP 3: Scorecards ----------
+function getPlayerOrderForCourse(course) {
+  // Order players so each round's scorecard mirrors that round's Match Schedule:
+  // match 1 (A pair, then B pair), then match 2 (A pair, then B pair), etc.
+  const fallback = state.players.map((_, i) => i);
+  const courseIdx = COURSES.indexOf(course);
+  if (courseIdx < 0) return fallback;
+  const schedule = state.matchSchedule || DEFAULT_MATCH_SCHEDULE;
+  const day = schedule.find(d => d.roundIdx === courseIdx);
+  if (!day) return fallback;
+  const order = [];
+  day.matches.forEach(m => {
+    m.teamA.forEach(pi => { if (order.indexOf(pi) < 0) order.push(pi); });
+    m.teamB.forEach(pi => { if (order.indexOf(pi) < 0) order.push(pi); });
+  });
+  // Append any players not referenced in the schedule (safety net)
+  state.players.forEach((_, pi) => {
+    if (order.indexOf(pi) < 0) order.push(pi);
+  });
+  return order;
+}
+
+function renderScoreName(nameDiv, pi) {
+  nameDiv.innerHTML = "";
+  const team = teamOfPlayer(pi);
+  const pill = document.createElement("span");
+  pill.className = "team-badge team-badge-" + team.toLowerCase();
+  pill.textContent = team;
+  nameDiv.appendChild(pill);
+  nameDiv.appendChild(document.createTextNode(" " + displayName(pi)));
+}
+
+function renderScorecards() {
+  COURSES.forEach(course => {
+    const table = document.getElementById("scorecard-" + course.id);
+    table.innerHTML = "";
+    const thead = document.createElement("thead");
+    const info = state.courseInfo[course.id];
+
+    // Row 1: "Hole" + hole numbers 1-18 + Pts
+    const holeRow = document.createElement("tr");
+    holeRow.className = "hdr-hole";
+    const holeLbl = document.createElement("th");
+    holeLbl.className = "name-cell";
+    holeLbl.textContent = "Hole";
+    holeRow.appendChild(holeLbl);
+    for (let h = 1; h <= HOLES; h++) {
+      const th = document.createElement("th");
+      th.textContent = h;
+      holeRow.appendChild(th);
+    }
+    const totalTh = document.createElement("th");
+    totalTh.textContent = "Pts";
+    totalTh.className = "total-cell";
+    totalTh.rowSpan = 3;
+    holeRow.appendChild(totalTh);
+    thead.appendChild(holeRow);
+
+    // Row 2: "Par" + par values
+    const parRow = document.createElement("tr");
+    parRow.className = "hdr-par";
+    const parLbl = document.createElement("th");
+    parLbl.className = "name-cell";
+    parLbl.textContent = "Par";
+    parRow.appendChild(parLbl);
+    for (let h = 0; h < HOLES; h++) {
+      const th = document.createElement("th");
+      th.textContent = (info && info.par && info.par[h] != null) ? info.par[h] : "";
+      parRow.appendChild(th);
+    }
+    thead.appendChild(parRow);
+
+    // Row 3: "Stroke" + SI values
+    const siRow = document.createElement("tr");
+    siRow.className = "hdr-stroke";
+    const siLbl = document.createElement("th");
+    siLbl.className = "name-cell";
+    siLbl.textContent = "Stroke";
+    siRow.appendChild(siLbl);
+    for (let h = 0; h < HOLES; h++) {
+      const th = document.createElement("th");
+      th.textContent = (info && info.si && info.si[h] != null) ? info.si[h] : "";
+      siRow.appendChild(th);
+    }
+    thead.appendChild(siRow);
+
+    table.appendChild(thead);
+
+    const tbody = document.createElement("tbody");
+    const playerOrder = getPlayerOrderForCourse(course);
+    // Determine which players form the start of each match (for visual dividers).
+    const scheduleDay = (state.matchSchedule || DEFAULT_MATCH_SCHEDULE).find(d => d.roundIdx === COURSES.indexOf(course));
+    const matchStartIndices = new Set();
+    if (scheduleDay) {
+      let running = 0;
+      scheduleDay.matches.forEach((m, mi) => {
+        if (mi > 0) matchStartIndices.add(running);
+        running += m.teamA.length + m.teamB.length;
+      });
+    }
+    playerOrder.forEach((pi, rowIdx) => {
+      const name = state.players[pi];
+      const tr = document.createElement("tr");
+      tr.id = "scorerow-" + course.id + "-" + pi;
+      if (isGhostName(name)) tr.classList.add("ghost-row");
+      if (matchStartIndices.has(rowIdx)) tr.classList.add("match-start-row");
+
+      const nameTd = document.createElement("td");
+      nameTd.className = "name-cell";
+      nameTd.id = "namecell-" + course.id + "-" + pi;
+      const nameDiv = document.createElement("div");
+      nameDiv.className = "score-name";
+      renderScoreName(nameDiv, pi);
+      nameTd.appendChild(nameDiv);
+      const hcpDiv = document.createElement("div");
+      hcpDiv.className = "score-name-hcp";
+      const hcpLab = document.createElement("label");
+      hcpLab.textContent = "HCP";
+      const hcpInp = document.createElement("input");
+      hcpInp.type = "number";
+      hcpInp.step = "1";
+      hcpInp.className = "hcp-input-mini";
+      hcpInp.id = "hcp-" + course.id + "-" + pi;
+      hcpInp.value = (state.handicapsByCourse[course.id][pi] != null) ? state.handicapsByCourse[course.id][pi] : 0;
+      hcpInp.disabled = isGhostName(name);
+      hcpInp.addEventListener("input", () => {
+        state.handicapsByCourse[course.id][pi] = hcpInp.value === "" ? 0 : Number(hcpInp.value);
+        saveState();
+        refreshAllStablefordDisplays();
+        if (state.revealed) revealWinners();
+      });
+      hcpDiv.appendChild(hcpLab);
+      hcpDiv.appendChild(hcpInp);
+      nameTd.appendChild(hcpDiv);
+      tr.appendChild(nameTd);
+
+      for (let h = 0; h < HOLES; h++) {
+        const td = document.createElement("td");
+        td.className = "score-cell";
+        const inp = document.createElement("input");
+        inp.className = "stroke-input";
+        inp.type = "number";
+        inp.min = 1;
+        inp.max = 15;
+        inp.inputMode = "numeric";
+        inp.id = "stroke-" + course.id + "-" + pi + "-" + h;
+        inp.value = state.scores[course.id][pi][h];
+        inp.disabled = isGhostName(name);
+        inp.addEventListener("input", () => {
+          state.scores[course.id][pi][h] = inp.value;
+          saveState();
+          refreshAllStablefordDisplays();
+          if (state.revealed) revealWinners();
+        });
+        td.appendChild(inp);
+        const pts = document.createElement("div");
+        pts.className = "pts-display";
+        pts.id = "pts-" + course.id + "-" + pi + "-" + h;
+        td.appendChild(pts);
+        tr.appendChild(td);
+      }
+
+      const totalTd = document.createElement("td");
+      totalTd.className = "total-cell";
+      totalTd.id = "total-" + course.id + "-" + pi;
+      tr.appendChild(totalTd);
+      tbody.appendChild(tr);
+    });  // playerOrder.forEach
+    table.appendChild(tbody);
+  });
+  refreshAllStablefordDisplays();
+}
+
+function refreshAllStablefordDisplays() {
+  refreshLeaderboards();
+  COURSES.forEach(course => {
+    state.players.forEach((_, pi) => {
+      const isGhost = isPlayerGhost(pi);
+      for (let h = 0; h < HOLES; h++) {
+        const el = document.getElementById("pts-" + course.id + "-" + pi + "-" + h);
+        if (!el) continue;
+        if (isGhost) {
+          const avg = fieldAverageStablefordOnHole(course.id, h);
+          el.textContent = (Math.round(avg * 10) / 10) + " pts";
+          el.classList.add("has-points");
+        } else {
+          const strokes = state.scores[course.id][pi][h];
+          if (strokes === "" || strokes == null) {
+            el.textContent = "";
+            el.classList.remove("has-points");
+          } else {
+            const pts = playerHoleStableford(pi, course.id, h);
+            el.textContent = pts + " pt" + (pts === 1 ? "" : "s");
+            el.classList.toggle("has-points", pts > 0);
+          }
+        }
+      }
+      const totEl = document.getElementById("total-" + course.id + "-" + pi);
+      if (totEl) {
+        const t = playerCourseStablefordTotal(pi, course.id);
+        totEl.textContent = Math.round(t * 10) / 10;
+      }
+    });
+  });
+}
+
+function fillRandomScores() {
+  getActiveCourses().forEach(c => {
+    state.players.forEach((name, pi) => {
+      if (isGhostName(name)) return;
+      const info = state.courseInfo[c.id];
+      for (let h = 0; h < HOLES; h++) {
+        const par = parseInt(info.par[h]) || 4;
+        state.scores[c.id][pi][h] = par + Math.floor(Math.random() * 5) - 1;
+      }
+    });
+  });
+  saveState();
+  renderScorecards();
+  if (state.revealed) revealWinners();
+}
+
+function clearScores() {
+  if (!confirm("Clear all scores?")) return;
+  COURSES.forEach(c => {
+    state.scores[c.id] = state.players.map(() => Array(HOLES).fill(""));
+  });
+  saveState();
+  renderScorecards();
+  if (state.revealed) revealWinners();
+}
+
+// ---------- STEP 4: Pairs ----------
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function randomisePairs() { /* n/a for Fancourt Trophy */ }
+
+function setStatus(id, text, done) {
+  const el = document.getElementById(id);
+  el.textContent = text;
+  el.className = "status-pill" + (done ? " done" : "");
+}
+
+function playerLabel(p) {
+  if (p === "GHOST") return "Ghost (field avg)";
+  if (isPlayerGhost(p)) return displayName(p) + " (field avg)";
+  return displayName(p);
+}
+
+function renderPairs() { /* n/a */ }
+
+// ---------- STEP 5: Odds vs Evens ----------
+function randomiseOddsEvens() { /* n/a */ }
+
+function renderOddsEvens() { return; /* n/a */
+  const c = document.getElementById("oe-display");
+  c.innerHTML = "";
+  if (!state.oddsEvens || !state.pairs) return;
+  state.pairs.forEach((team, ti) => {
+    const oe = state.oddsEvens[ti];
+    const hasAnyGhost = team.hasGhost || team.players.some(p => p !== "GHOST" && isPlayerGhost(p));
+    const card = document.createElement("div");
+    card.className = "pair-card" + (hasAnyGhost ? " ghost-team" : "");
+    card.innerHTML = '<div class="team-label">Team ' + team.teamId + (hasAnyGhost ? " &middot; includes Ghost" : "") + '</div>';
+    getActiveCourses().forEach(course => {
+      if (!oe[course.id]) return;
+      const block = document.createElement("div");
+      block.className = "course-block";
+      const oddP = team.players[oe[course.id].odd];
+      const evenP = team.players[oe[course.id].even];
+      block.innerHTML =
+        '<div class="course-block-title">' + course.name + '</div>' +
+        '<div class="player-row"><span>Odd holes</span><span class="assignment">' + playerLabel(oddP) + '</span></div>' +
+        '<div class="player-row"><span>Even holes</span><span class="assignment">' + playerLabel(evenP) + '</span></div>';
+      card.appendChild(block);
+    });
+    c.appendChild(card);
+  });
+}
+
+// ---------- STEP 6: Reveal Winners ----------
+function teamScore(teamIdx) { return { total: 0, byCourse: {} };
+  const team = state.pairs[teamIdx];
+  const oe = state.oddsEvens[teamIdx];
+  let total = 0;
+  const byCourse = {};
+  getActiveCourses().forEach(course => {
+    const oddPlayer = team.players[oe[course.id].odd];
+    const evenPlayer = team.players[oe[course.id].even];
+    const perPlayer = {
+      odd:  { player: oddPlayer,  total: 0 },
+      even: { player: evenPlayer, total: 0 }
+    };
+    let courseTotal = 0;
+    for (let h = 0; h < HOLES; h++) {
+      const holeNum = h + 1;
+      const target = (holeNum % 2 === 1) ? "odd" : "even";
+      const p = perPlayer[target].player;
+      const pts = (p === "GHOST")
+        ? fieldAverageStablefordOnHole(course.id, h)
+        : playerHoleStableford(p, course.id, h);
+      perPlayer[target].total += pts;
+      courseTotal += pts;
+    }
+    byCourse[course.id] = { courseTotal, perPlayer };
+    total += courseTotal;
+  });
+  return { total, byCourse };
+}
+
+function fmt(n) { return Math.round(n * 10) / 10; }
+
+function revealWinners() { return;
+  if (!state.pairs || !state.oddsEvens) return;
+  state.revealed = true;
+  saveState();
+  const results = state.pairs.map((team, ti) => {
+    const { total, byCourse } = teamScore(ti);
+    return { team, ti, total, byCourse };
+  }).sort((a, b) => b.total - a.total);
+
+  const c = document.getElementById("results-display");
+  c.innerHTML = "";
+  const winningTotal = results[0].total;
+  results.forEach((r, rank) => {
+    const isWinner = r.total === winningTotal;
+    const row = document.createElement("div");
+    row.className = "result-row" + (isWinner ? " winner" : "");
+    const names = r.team.players.map(p => playerLabel(p)).join(" + ");
+    const detailLines = getActiveCourses().map(course => {
+      const cb = r.byCourse[course.id];
+      if (!cb) return "";
+      const odd = cb.perPlayer.odd;
+      const even = cb.perPlayer.even;
+      return course.name + ": " +
+        playerLabel(odd.player) + " (odd) " + fmt(odd.total) + " + " +
+        playerLabel(even.player) + " (even) " + fmt(even.total) +
+        " = " + fmt(cb.courseTotal);
+    });
+    row.innerHTML =
+      '<div class="rank">' + (isWinner ? "&#127942;" : ("#" + (rank+1))) + '</div>' +
+      '<div class="team-info">' +
+        '<div class="team-names">Team ' + r.team.teamId + ': ' + names + '</div>' +
+        '<div class="team-detail">' + detailLines.join(" &middot; ") + '</div>' +
+      '</div>' +
+      '<div class="total">' + fmt(r.total) + '</div>';
+    c.appendChild(row);
+  });
+}
+
+function resetDraws() { return;
+  if (!confirm("Reset pairs and odds/evens? Scores and names will be kept.")) return;
+  state.pairs = null;
+  state.oddsEvens = null;
+  state.revealed = false;
+  saveState();
+  document.getElementById("pairs-display").innerHTML = "";
+  document.getElementById("oe-display").innerHTML = "";
+  document.getElementById("results-display").innerHTML = "";
+  document.getElementById("btn-oe").disabled = true;
+  document.getElementById("btn-reveal").disabled = true;
+  setStatus("status-pairs", "Not drawn", false);
+  setStatus("status-oe", "Not drawn", false);
+}
+
+function resetAll() {
+  if (!confirm("Reset everything including names, handicaps, course setup and scores? This cannot be undone.")) return;
+  try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
+  state = freshState();
+  applyRoundCountVisibility();
+  renderPlayers();
+  renderCourseSelectors();
+  refreshCourseTitles();
+  renderCourseSetup();
+  renderScorecards();
+  document.getElementById("pairs-display").innerHTML = "";
+  document.getElementById("oe-display").innerHTML = "";
+  document.getElementById("results-display").innerHTML = "";
+  document.getElementById("btn-oe").disabled = true;
+  document.getElementById("btn-reveal").disabled = true;
+  setStatus("status-pairs", "Not drawn", false);
+  setStatus("status-oe", "Not drawn", false);
+}
+
+
+// ---------- Live sync (polling via JSONBin) ----------
+const SYNC_CONFIG_KEY = "fancourt_trophy_sync_v1";
+// Pre-baked credentials so anyone opening the link auto-syncs without setup.
+// Anyone with the URL can read AND write the shared bin — treat the URL as the secret.
+const BAKED_SYNC = {
+  // Shared with the Mayday Tour app — writes from either app overwrite each other.
+  binId: "6a0df57cee5a733b12f02a9b",
+  masterKey: "$2a$10$ZHVcELjmXfoNoCKanMMnmeCi6/BOo4XGk6pex0YhQ/Zg6ZUY0Ubza"
+};
+let syncCfg = (function(){
+  const raw = (function(){ try { return localStorage.getItem(SYNC_CONFIG_KEY); } catch (e) { return null; } })();
+  if (raw === null) {
+    return BAKED_SYNC.binId ? { binId: BAKED_SYNC.binId, masterKey: BAKED_SYNC.masterKey } : {};
+  }
+  try { return JSON.parse(raw) || {}; } catch (e) { return {}; }
+})();
+let syncStatus = "off";
+const POLL_VISIBLE_MS = 300000;  // 5 minutes
+const POLL_HIDDEN_MS  = 900000;  // 15 minutes when tab hidden
+let pollHandle = null;
+let pushTimer = null;
+let lastAppliedRemoteTs = 0;
+let suppressPollUntil = 0;
+
+function saveSyncCfg() {
+  try { localStorage.setItem(SYNC_CONFIG_KEY, JSON.stringify(syncCfg)); } catch (e) {}
+}
+function isSyncConfigured() { return !!(syncCfg && syncCfg.binId && syncCfg.masterKey); }
+
+function setSyncStatus(s, msg) {
+  syncStatus = s;
+  const dot = document.getElementById("sync-dot");
+  const label = document.getElementById("sync-label");
+  if (!dot || !label) return;
+  dot.className = "sync-dot" + (s !== "off" ? (" " + s) : "");
+  const defaults = {
+    off: "Sync: off",
+    on: "Sync: live",
+    pending: "Syncing...",
+    err: "Sync error — check credentials"
+  };
+  label.textContent = msg || defaults[s] || s;
+}
+
+async function fetchRemote() {
+  if (!isSyncConfigured()) return null;
+  try {
+    const res = await fetch("https://api.jsonbin.io/v3/b/" + encodeURIComponent(syncCfg.binId) + "/latest", {
+      headers: { "X-Master-Key": syncCfg.masterKey }
+    });
+    if (!res.ok) { setSyncStatus("err"); return null; }
+    const data = await res.json();
+    return data && data.record;
+  } catch (e) {
+    setSyncStatus("err");
+    return null;
+  }
+}
+
+async function pushRemote() {
+  if (!isSyncConfigured()) return;
+  state._updatedAt = Date.now();
+  setSyncStatus("pending");
+  try {
+    const res = await fetch("https://api.jsonbin.io/v3/b/" + encodeURIComponent(syncCfg.binId), {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", "X-Master-Key": syncCfg.masterKey },
+      body: JSON.stringify(state)
+    });
+    if (!res.ok) { setSyncStatus("err"); return; }
+    suppressPollUntil = Date.now() + 3000;
+    lastAppliedRemoteTs = state._updatedAt;
+    setSyncStatus("on");
+  } catch (e) {
+    setSyncStatus("err");
+  }
+}
+
+function schedulePush() {
+  if (!isSyncConfigured()) return;
+  if (pushTimer) clearTimeout(pushTimer);
+  pushTimer = setTimeout(() => { pushTimer = null; pushRemote(); }, 1500);
+}
+
+async function pollOnce() {
+  if (!isSyncConfigured()) return;
+  if (Date.now() < suppressPollUntil) return;
+  const remote = await fetchRemote();
+  if (!remote) return;
+  if (!isRemoteCompatible(remote)) {
+    // Foreign state in the bin — don't clobber local, and re-push our correct state.
+    pushRemote();
+    return;
+  }
+  setSyncStatus("on");
+  const rT = remote._updatedAt || 0;
+  if (rT > (state._updatedAt || 0) && rT > lastAppliedRemoteTs) {
+    applyRemoteState(remote);
+    lastAppliedRemoteTs = rT;
+  }
+}
+
+async function refreshSyncNow() {
+  if (!isSyncConfigured()) { alert("Sync is not configured."); return; }
+  setSyncStatus("pending");
+  suppressPollUntil = 0;
+  await pollOnce();
+}
+
+function applyRemoteState(remote) {
+  if (!isRemoteCompatible(remote)) {
+    // Ignore incompatible remote; keep local defaults and push over the bin.
+    setSyncStatus("pending", "Remote state incompatible — pushing local");
+    pushRemote();
+    return;
+  }
+  const focused = document.activeElement;
+  const focusedId = focused && focused.id ? focused.id : null;
+  const focusedSelStart = focused && focused.selectionStart;
+  state = remote;
+  migrateCourseKeys(state);
+  // Ensure shape integrity after remote load
+  if (!Array.isArray(state.matchSchedule)) {
+    state.matchSchedule = cloneSchedule(DEFAULT_MATCH_SCHEDULE);
+  }
+  if (!state.handicapsByCourse) state.handicapsByCourse = makeHandicapsByCourse(state.players.length);
+  COURSES.forEach(c => {
+    if (!Array.isArray(state.handicapsByCourse[c.id])) state.handicapsByCourse[c.id] = Array(state.players.length).fill(0);
+  });
+  applyRoundCountVisibility();
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+  // Re-bind player-count input value
+  const countInp = document.getElementById("player-count-input");
+  if (countInp) countInp.value = state.players.length;
+  renderPlayers();
+  renderCourseSelectors();
+  refreshCourseTitles();
+  renderCourseSetup();
+  renderScorecards();
+  refreshLeaderboards();
+  // (No draw buttons/status in Fancourt Trophy — schedule is fixed.)
+  if (focusedId) {
+    const el = document.getElementById(focusedId);
+    if (el && el.focus) {
+      el.focus();
+      if (typeof focusedSelStart === "number" && el.setSelectionRange) {
+        try { el.setSelectionRange(focusedSelStart, focusedSelStart); } catch(e){}
+      }
+    }
+  }
+}
+
+function startPolling() {
+  stopPolling();
+  const interval = document.hidden ? POLL_HIDDEN_MS : POLL_VISIBLE_MS;
+  pollHandle = setInterval(pollOnce, interval);
+}
+function stopPolling() {
+  if (pollHandle) { clearInterval(pollHandle); pollHandle = null; }
+}
+document.addEventListener("visibilitychange", () => {
+  if (isSyncConfigured()) startPolling();
+});
+
+function toggleSyncSettings() {
+  const panel = document.getElementById("sync-settings");
+  panel.classList.toggle("hidden");
+  if (!panel.classList.contains("hidden")) {
+    document.getElementById("sync-bin-id").value = syncCfg.binId || "";
+    document.getElementById("sync-master-key").value = syncCfg.masterKey || "";
+  }
+}
+
+const ADMIN_PASSWORD = "Control";
+// Admin starts locked on every page load. No persistence — the password must be
+// entered fresh whenever the page is opened or refreshed.
+let adminUnlocked = false;
+
+function renderAdminPanel() {
+  const lockedEl = document.getElementById("admin-locked");
+  const unlockedEl = document.getElementById("admin-unlocked");
+  if (!lockedEl || !unlockedEl) return;
+  lockedEl.classList.toggle("hidden", adminUnlocked);
+  unlockedEl.classList.toggle("hidden", !adminUnlocked);
+  const err = document.getElementById("admin-pwd-err");
+  if (err) err.style.display = "none";
+}
+
+function unlockAdmin() {
+  const inp = document.getElementById("admin-pwd");
+  const err = document.getElementById("admin-pwd-err");
+  if (!inp) return;
+  if (inp.value === ADMIN_PASSWORD) {
+    adminUnlocked = true;
+    inp.value = "";
+    if (err) err.style.display = "none";
+    renderAdminPanel();
+  } else {
+    if (err) err.style.display = "";
+    inp.value = "";
+    inp.focus();
+  }
+}
+
+function lockAdmin() {
+  adminUnlocked = false;
+  renderAdminPanel();
+}
+
+function toggleAdminPanel() {
+  const panel = document.getElementById("admin-panel");
+  const btn = document.getElementById("admin-toggle-btn");
+  panel.classList.toggle("hidden");
+  if (btn) btn.textContent = panel.classList.contains("hidden") ? "Show" : "Hide";
+  if (!panel.classList.contains("hidden")) {
+    renderAdminPanel();
+    if (!adminUnlocked) {
+      setTimeout(() => {
+        const inp = document.getElementById("admin-pwd");
+        if (inp) inp.focus();
+      }, 50);
+    }
+  }
+}
+
+async function connectSync() {
+  const binId = (document.getElementById("sync-bin-id").value || "").trim();
+  const masterKey = (document.getElementById("sync-master-key").value || "").trim();
+  if (!binId || !masterKey) { alert("Both Bin ID and Master Key are required."); return; }
+  syncCfg = { binId: binId, masterKey: masterKey };
+  saveSyncCfg();
+  setSyncStatus("pending");
+  const remote = await fetchRemote();
+  if (remote && remote.players && (remote._updatedAt || 0) > (state._updatedAt || 0)) {
+    applyRemoteState(remote);
+    lastAppliedRemoteTs = remote._updatedAt || 0;
+  } else {
+    await pushRemote();
+  }
+  startPolling();
+  document.getElementById("sync-settings").classList.add("hidden");
+}
+
+function disconnectSync() {
+  if (!confirm("Disconnect sync? Your local data will stay on this device but no longer sync with other devices.")) return;
+  syncCfg = {};
+  saveSyncCfg();
+  stopPolling();
+  setSyncStatus("off");
+}
+
+async function pushLocalToRemote() {
+  if (!isSyncConfigured()) { alert("Configure sync credentials first."); return; }
+  if (!confirm("This will overwrite the shared data with what's on this device. Continue?")) return;
+  state._updatedAt = Date.now();
+  await pushRemote();
+}
+
+// Wrap saveState so any local change schedules a remote push
+const _origSaveState = saveState;
+saveState = function() {
+  state._updatedAt = Date.now();
+  _origSaveState();
+  schedulePush();
+};
+
+// Initialise sync after the initial render.
+function bootSync() {
+  if (isSyncConfigured()) {
+    setSyncStatus("pending");
+    if (stateWasJustReset) {
+      // Local was just initialised from defaults (schema bump or first load).
+      // Force-push to overwrite any stale/wrong data in the shared bin.
+      setSyncStatus("pending", "Applying default lineup to bin");
+      pushRemote().then(startPolling);
+      return;
+    }
+    fetchRemote().then(remote => {
+      if (!remote || !remote.players) {
+        pushRemote().then(startPolling);
+        return;
+      }
+      if (!isRemoteCompatible(remote)) {
+        setSyncStatus("pending", "Bin has stale data — overwriting");
+        pushRemote().then(startPolling);
+        return;
+      }
+      const rT = remote._updatedAt || 0;
+      if (rT > (state._updatedAt || 0)) {
+        applyRemoteState(remote);
+        lastAppliedRemoteTs = rT;
+      } else {
+        setSyncStatus("on");
+      }
+      startPolling();
+    });
+  } else {
+    setSyncStatus("off");
+  }
+}
+
+// ---------- Match play + leaderboards ----------
+function bestBallStableford(playerIndices, courseId, hole) {
+  let best = 0;
+  playerIndices.forEach(pi => {
+    const pts = playerHoleStableford(pi, courseId, hole);
+    if (pts > best) best = pts;
+  });
+  return best;
+}
+
+function computeMatchStatus(match, roundIdx) {
+  const course = COURSES[roundIdx];
+  if (!course) return null;
+  const courseId = course.id;
+  let aWins = 0, bWins = 0, halved = 0, holesPlayed = 0;
+  for (let h = 0; h < HOLES; h++) {
+    const anyA = match.teamA.some(pi => (state.scores[courseId][pi][h] !== "" && state.scores[courseId][pi][h] != null));
+    const anyB = match.teamB.some(pi => (state.scores[courseId][pi][h] !== "" && state.scores[courseId][pi][h] != null));
+    if (!anyA && !anyB) continue;
+    holesPlayed++;
+    const aPts = bestBallStableford(match.teamA, courseId, h);
+    const bPts = bestBallStableford(match.teamB, courseId, h);
+    if (aPts > bPts) aWins++;
+    else if (bPts > aPts) bWins++;
+    else halved++;
+  }
+  const lead = aWins - bWins;
+  const holesLeft = HOLES - holesPlayed;
+  let status, complete = false, aPoints = 0, bPoints = 0;
+  let provisional = false;
+  if (holesPlayed === 0) {
+    status = "Not started";
+    // no provisional points until at least one hole is played
+  } else if (Math.abs(lead) > holesLeft && holesLeft > 0) {
+    // Match decided before 18: X&Y
+    const upBy = Math.abs(lead);
+    status = (lead > 0 ? "A wins " : "B wins ") + upBy + "&" + holesLeft;
+    complete = true;
+    if (lead > 0) aPoints = 1; else bPoints = 1;
+  } else if (holesPlayed === HOLES) {
+    // Went all 18
+    if (lead === 0) { status = "Halved"; complete = true; aPoints = 0.5; bPoints = 0.5; }
+    else if (lead > 0) { status = "A wins " + lead + " up"; complete = true; aPoints = 1; }
+    else { status = "B wins " + Math.abs(lead) + " up"; complete = true; bPoints = 1; }
+  } else {
+    // In progress — assign PROVISIONAL points based on current lead
+    provisional = true;
+    if (lead === 0) { status = "AS thru " + holesPlayed; aPoints = 0.5; bPoints = 0.5; }
+    else if (lead > 0) { status = "A " + lead + " UP thru " + holesPlayed; aPoints = 1; }
+    else { status = "B " + Math.abs(lead) + " UP thru " + holesPlayed; bPoints = 1; }
+  }
+  return { aWins, bWins, halved, holesPlayed, holesLeft, lead, status, complete, provisional, aPoints, bPoints };
+}
+
+function makeMatchSelect(dayIdx, matchIdx, team, slot, currentPi) {
+  const sel = document.createElement("select");
+  sel.className = "match-select match-select-" + team.toLowerCase();
+  const indices = team === "A" ? TEAM_A_INDICES : TEAM_B_INDICES;
+  indices.forEach(pi => {
+    const opt = document.createElement("option");
+    opt.value = String(pi);
+    opt.textContent = displayName(pi);
+    if (pi === currentPi) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  sel.addEventListener("change", () => {
+    handleMatchPairChange(dayIdx, matchIdx, team, slot, parseInt(sel.value));
+  });
+  return sel;
+}
+
+function handleMatchPairChange(dayIdx, matchIdx, team, slot, newPi) {
+  const day = state.matchSchedule[dayIdx];
+  if (!day) return;
+  const match = day.matches[matchIdx];
+  if (!match) return;
+  const arr = team === "A" ? match.teamA : match.teamB;
+  const oldPi = arr[slot];
+  if (oldPi === newPi) return;
+  // Auto-swap: if newPi is already in another match on the same day (same team), swap it with oldPi
+  for (let mi = 0; mi < day.matches.length; mi++) {
+    if (mi === matchIdx) continue;
+    const otherArr = team === "A" ? day.matches[mi].teamA : day.matches[mi].teamB;
+    for (let si = 0; si < otherArr.length; si++) {
+      if (otherArr[si] === newPi) otherArr[si] = oldPi;
+    }
+  }
+  arr[slot] = newPi;
+  saveState();
+  renderScorecards();      // reorder scorecard rows to reflect new pairing order
+  refreshLeaderboards();
+}
+
+function renderMatchSchedule() {
+  const c = document.getElementById("match-schedule-display");
+  if (!c) return;
+  // Preserve focus (in case user just interacted with a select)
+  const focused = document.activeElement;
+  const focusedId = focused && focused.id ? focused.id : null;
+
+  c.innerHTML = "";
+  const schedule = state.matchSchedule || DEFAULT_MATCH_SCHEDULE;
+  schedule.forEach((day, dayIdx) => {
+    const course = COURSES[day.roundIdx];
+    const courseName = (state.courseInfo[course.id] && state.courseInfo[course.id].name) || course.name;
+    const dayWrap = document.createElement("div");
+    dayWrap.className = "day-block";
+    dayWrap.innerHTML = '<div class="day-header">Day ' + day.day + " &middot; " + courseName + '</div>';
+    day.matches.forEach((m, mi) => {
+      const status = computeMatchStatus(m, day.roundIdx);
+      const card = document.createElement("div");
+      card.className = "match-card" + (status && status.complete ? " match-done" : "");
+      let statusClass = "match-status";
+      if (status && status.complete) {
+        if (status.aPoints > status.bPoints) statusClass += " status-a";
+        else if (status.bPoints > status.aPoints) statusClass += " status-b";
+        else statusClass += " status-halved";
+      } else if (status && status.provisional) {
+        if (status.aPoints > status.bPoints) statusClass += " status-a";
+        else if (status.bPoints > status.aPoints) statusClass += " status-b";
+      }
+
+      // Label
+      const labelDiv = document.createElement("div");
+      labelDiv.className = "match-label";
+      labelDiv.textContent = "Match " + (mi + 1);
+
+      // Teams (with selects)
+      const teamsDiv = document.createElement("div");
+      teamsDiv.className = "match-teams";
+
+      const aLine = document.createElement("div");
+      aLine.className = "match-team-line";
+      const aTag = document.createElement("span");
+      aTag.className = "team-a-tag";
+      aTag.textContent = "A";
+      aLine.appendChild(aTag);
+      const selA1 = makeMatchSelect(dayIdx, mi, "A", 0, m.teamA[0]);
+      selA1.id = "match-sel-" + dayIdx + "-" + mi + "-A-0";
+      aLine.appendChild(selA1);
+      const amp1 = document.createElement("span");
+      amp1.className = "amp";
+      amp1.textContent = "&";
+      aLine.appendChild(amp1);
+      const selA2 = makeMatchSelect(dayIdx, mi, "A", 1, m.teamA[1]);
+      selA2.id = "match-sel-" + dayIdx + "-" + mi + "-A-1";
+      aLine.appendChild(selA2);
+      teamsDiv.appendChild(aLine);
+
+      const vs = document.createElement("div");
+      vs.className = "vs";
+      vs.textContent = "vs";
+      teamsDiv.appendChild(vs);
+
+      const bLine = document.createElement("div");
+      bLine.className = "match-team-line";
+      const bTag = document.createElement("span");
+      bTag.className = "team-b-tag";
+      bTag.textContent = "B";
+      bLine.appendChild(bTag);
+      const selB1 = makeMatchSelect(dayIdx, mi, "B", 0, m.teamB[0]);
+      selB1.id = "match-sel-" + dayIdx + "-" + mi + "-B-0";
+      bLine.appendChild(selB1);
+      const amp2 = document.createElement("span");
+      amp2.className = "amp";
+      amp2.textContent = "&";
+      bLine.appendChild(amp2);
+      const selB2 = makeMatchSelect(dayIdx, mi, "B", 1, m.teamB[1]);
+      selB2.id = "match-sel-" + dayIdx + "-" + mi + "-B-1";
+      bLine.appendChild(selB2);
+      teamsDiv.appendChild(bLine);
+
+      // Status
+      const statusDiv = document.createElement("div");
+      statusDiv.className = statusClass;
+      statusDiv.textContent = status ? status.status : "—";
+
+      card.appendChild(labelDiv);
+      card.appendChild(teamsDiv);
+      card.appendChild(statusDiv);
+      dayWrap.appendChild(card);
+    });
+    c.appendChild(dayWrap);
+  });
+
+  // Restore focus
+  if (focusedId) {
+    const el = document.getElementById(focusedId);
+    if (el && el.focus) el.focus();
+  }
+}
+
+function computeIndividualStandings() {
+  return state.players.map((_, pi) => {
+    const perRound = {};
+    let total = 0;
+    getActiveCourses().forEach(c => {
+      const t = playerCourseStablefordTotal(pi, c.id);
+      perRound[c.id] = t;
+      total += t;
+    });
+    return { pi, total, perRound, team: teamOfPlayer(pi) };
+  }).sort((a, b) => b.total - a.total);
+}
+
+function renderIndividualLeaderboard() {
+  const c = document.getElementById("individual-leaderboard");
+  if (!c) return;
+  const standings = computeIndividualStandings();
+  const table = document.createElement("table");
+  table.className = "leaderboard";
+  const thead = document.createElement("thead");
+  let hdr = '<tr><th>#</th><th>Player</th><th>Team</th>';
+  getActiveCourses().forEach((course, idx) => {
+    const nm = (state.courseInfo[course.id] && state.courseInfo[course.id].name) || course.name;
+    hdr += '<th title="' + nm + '">R' + (idx + 1) + '</th>';
+  });
+  hdr += '<th class="lb-total">Total</th></tr>';
+  thead.innerHTML = hdr;
+  table.appendChild(thead);
+  const tbody = document.createElement("tbody");
+  let bestScore = standings.length ? standings[0].total : 0;
+  standings.forEach((s, i) => {
+    const row = document.createElement("tr");
+    if (s.total === bestScore && s.total > 0) row.className = "lb-leader";
+    row.innerHTML =
+      '<td>' + (i + 1) + '</td>' +
+      '<td class="lb-name">' + displayName(s.pi) + '</td>' +
+      '<td><span class="team-tag team-tag-' + s.team.toLowerCase() + '">' + s.team + '</span></td>' +
+      getActiveCourses().map(course => '<td>' + Math.round(s.perRound[course.id]) + '</td>').join("") +
+      '<td class="lb-total">' + Math.round(s.total) + '</td>';
+    tbody.appendChild(row);
+  });
+  table.appendChild(tbody);
+  c.innerHTML = "";
+  c.appendChild(table);
+}
+
+function computeTeamStandings() {
+  let aTotal = 0, bTotal = 0;         // includes provisional (in-progress) leads
+  let aConfirmed = 0, bConfirmed = 0; // from complete matches only
+  let complete = 0, inProgress = 0, notStarted = 0;
+  (state.matchSchedule || DEFAULT_MATCH_SCHEDULE).forEach(day => {
+    day.matches.forEach(m => {
+      const s = computeMatchStatus(m, day.roundIdx);
+      if (!s) return;
+      aTotal += s.aPoints; bTotal += s.bPoints;
+      if (s.complete) {
+        complete++;
+        aConfirmed += s.aPoints; bConfirmed += s.bPoints;
+      } else if (s.provisional) {
+        inProgress++;
+      } else {
+        notStarted++;
+      }
+    });
+  });
+  return { aTotal, bTotal, aConfirmed, bConfirmed, complete, inProgress, notStarted };
+}
+
+function renderTeamLeaderboard() {
+  const c = document.getElementById("team-leaderboard");
+  if (!c) return;
+  const s = computeTeamStandings();
+  const aLead = s.aTotal > s.bTotal;
+  const bLead = s.bTotal > s.aTotal;
+  const fmt = n => (Math.round(n * 10) / 10);
+  const provisionalPart = s.inProgress > 0
+    ? '<span class="team-lb-provisional"> (incl. ' + s.inProgress + ' in progress)</span>'
+    : '';
+  c.innerHTML =
+    '<div class="team-lb">' +
+      '<div class="team-lb-row team-a-bg' + (aLead ? " team-lb-lead" : "") + '">' +
+        '<span class="team-lb-name">Team A</span>' +
+        '<span class="team-lb-pts">' + fmt(s.aTotal) + '</span>' +
+      '</div>' +
+      '<div class="team-lb-row team-b-bg' + (bLead ? " team-lb-lead" : "") + '">' +
+        '<span class="team-lb-name">Team B</span>' +
+        '<span class="team-lb-pts">' + fmt(s.bTotal) + '</span>' +
+      '</div>' +
+      '<div class="team-lb-summary">' +
+        s.complete + ' complete &middot; ' + s.inProgress + ' in progress &middot; ' + s.notStarted + ' not started' +
+        (s.inProgress > 0 ? ' <br><em>Points shown include provisional leads from in-progress matches.</em>' : '') +
+      '</div>' +
+    '</div>';
+}
+
+function refreshLeaderboards() {
+  renderMatchSchedule();
+  renderIndividualLeaderboard();
+  renderTeamLeaderboard();
+}
+
+function resetMatchSchedule() {
+  if (!confirm("Reset the match schedule to the original defaults? Any custom pairings will be lost.")) return;
+  state.matchSchedule = cloneSchedule(DEFAULT_MATCH_SCHEDULE);
+  saveState();
+  refreshLeaderboards();
+}
+
+// ---------- Round count ----------
+function applyRoundCountVisibility() {
+  const n = Math.max(MIN_ROUNDS, Math.min(MAX_ROUNDS, Number(state.roundCount) || DEFAULT_ROUNDS));
+  document.querySelectorAll('[data-round-slot]').forEach(el => {
+    const slot = el.getAttribute('data-round-slot');
+    const idx = parseInt(String(slot).replace('round', ''));
+    el.classList.toggle('hidden', idx > n);
+  });
+  const inp = document.getElementById('round-count-input');
+  if (inp) inp.value = n;
+}
+
+function setRoundCount(newCount) {
+  newCount = Math.max(MIN_ROUNDS, Math.min(MAX_ROUNDS, Math.floor(Number(newCount) || 0)));
+  if (newCount === state.roundCount) return;
+  state.roundCount = newCount;
+  // Round count changed — invalidate draws since they depend on the active set
+  state.pairs = null;
+  state.oddsEvens = null;
+  state.revealed = false;
+  saveState();
+  applyRoundCountVisibility();
+  refreshAllStablefordDisplays();
+  const pd = document.getElementById("pairs-display"); if (pd) pd.innerHTML = "";
+  const od = document.getElementById("oe-display"); if (od) od.innerHTML = "";
+  const rd = document.getElementById("results-display"); if (rd) rd.innerHTML = "";
+  const btnOe = document.getElementById("btn-oe"); if (btnOe) btnOe.disabled = true;
+  const btnReveal = document.getElementById("btn-reveal"); if (btnReveal) btnReveal.disabled = true;
+  setStatus("status-pairs", "Not drawn", false);
+  setStatus("status-oe", "Not drawn", false);
+}
+
+function bindRoundCountInput() {
+  const inp = document.getElementById('round-count-input');
+  if (!inp || inp._bound) return;
+  inp.addEventListener('change', () => setRoundCount(parseInt(inp.value) || state.roundCount));
+  inp._bound = true;
+}
+
+
+// ---------- Collapsibles ----------
+const COLLAPSE_KEY = "fancourt_trophy_collapse_v2";
+
+function toggleCollapse(el) {
+  if (!el) return;
+  el.classList.toggle('collapsed');
+  saveCollapseState();
+}
+
+function saveCollapseState() {
+  const s = { steps: [], courses: [] };
+  document.querySelectorAll('.step').forEach((sec, i) => {
+    if (sec.classList.contains('collapsed')) s.steps.push(i);
+  });
+  document.querySelectorAll('.course-section[data-round-slot]').forEach(sec => {
+    if (sec.classList.contains('collapsed')) {
+      const stepEl = sec.closest('.step');
+      const stepIdx = stepEl ? Array.from(document.querySelectorAll('.step')).indexOf(stepEl) : -1;
+      const slot = sec.getAttribute('data-round-slot');
+      s.courses.push(stepIdx + ':' + slot);
+    }
+  });
+  try { localStorage.setItem(COLLAPSE_KEY, JSON.stringify(s)); } catch(e) {}
+}
+
+function loadCollapseState() {
+  let saved;
+  try { saved = JSON.parse(localStorage.getItem(COLLAPSE_KEY) || 'null'); } catch(e) { saved = null; }
+  const steps = Array.from(document.querySelectorAll('.step'));
+  if (saved) {
+    (saved.steps || []).forEach(idx => { if (steps[idx]) steps[idx].classList.add('collapsed'); });
+    (saved.courses || []).forEach(key => {
+      const parts = key.split(':');
+      const stepIdx = parseInt(parts[0]);
+      const slot = parts[1];
+      const step = steps[stepIdx];
+      if (!step) return;
+      const s = step.querySelector('[data-round-slot="' + slot + '"]');
+      if (s) s.classList.add('collapsed');
+    });
+  } else {
+    // Defaults: keep Gross Strokes (Round 1 only), Match Schedule, Leaderboards open.
+    // Defaults after Match Schedule moved to Step 2:
+    //   0 Players — collapsed
+    //   1 Match Schedule — open
+    //   2 Course Setup — collapsed
+    //   3 Gross Strokes — open (Round 1 only)
+    //   4 Leaderboards — open
+    if (steps[0]) steps[0].classList.add('collapsed');
+    if (steps[2]) steps[2].classList.add('collapsed');
+    document.querySelectorAll('.course-section[data-round-slot="round2"], .course-section[data-round-slot="round3"], .course-section[data-round-slot="round4"]').forEach(s => {
+      s.classList.add('collapsed');
+    });
+  }
+}
+
+function initCollapsibles() {
+  document.querySelectorAll('.step h2').forEach(h2 => {
+    if (h2._collapsibleBound) return;
+    h2.addEventListener('click', () => toggleCollapse(h2.closest('.step')));
+    h2._collapsibleBound = true;
+  });
+  document.querySelectorAll('.course-section > h3').forEach(h3 => {
+    if (h3._collapsibleBound) return;
+    h3.addEventListener('click', () => toggleCollapse(h3.parentElement));
+    h3._collapsibleBound = true;
+  });
+  loadCollapseState();
+}
+
+// ---------- Init ----------
+function init() {
+  applyRoundCountVisibility();
+  bindRoundCountInput();
+  renderPlayers();
+  renderCourseSelectors();
+  refreshCourseTitles();
+  renderCourseSetup();
+  renderScorecards();
+  refreshLeaderboards();
+  initCollapsibles();
+  bootSync();
+}
+init();
+</script>
+</body>
+</html>
