@@ -856,10 +856,17 @@
     z-index: 50;
     background: var(--navy);
     color: white;
-    margin: 0 -12px 0;
-    padding: 10px 16px 8px;
+    margin: 0 -12px 12px;
+    /* iPhone safe area: keep header clear of the notch / dynamic island / status bar */
+    padding-top: calc(10px + env(safe-area-inset-top, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-bottom: 0;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
     border-bottom: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.18);
   }
+  /* Also respect the home-indicator area at the bottom of iPhones with rounded corners */
+  body { padding-bottom: max(20px, env(safe-area-inset-bottom, 0px)); }
   .app-header-top {
     display: flex;
     align-items: center;
@@ -940,13 +947,10 @@
   .ts-side.leading { box-shadow: inset 0 -3px 0 var(--gold); }
 
   .app-tab-bar {
-    position: sticky;
-    top: 108px;
-    z-index: 49;
-    background: white;
     display: flex;
+    background: white;
     border-bottom: 2px solid var(--gray-200);
-    margin: 0 -12px 12px;
+    margin: 8px -16px 0;   /* bleed to app-header edges */
     box-shadow: 0 2px 6px rgba(0,0,0,0.06);
   }
   .app-tab {
@@ -1021,8 +1025,9 @@
   body[data-active-round="round3"] #tab-play-strokes .course-section[data-round-slot="round1"],
   body[data-active-round="round3"] #tab-play-strokes .course-section[data-round-slot="round2"],
   body[data-active-round="round3"] #tab-play-strokes .course-section[data-round-slot="round4"] { display: none !important; }
-  /* Force the active round's course-section OPEN even if user had collapsed it */
-  #tab-play-strokes .course-section.collapsed > *:not(h3) { display: none; }
+  /* Within Play tab: ignore any .collapsed class on course-sections
+     (round-chip selector is the sole controller of round visibility here) */
+  #tab-play-strokes .course-section.collapsed > *:not(h3) { display: revert !important; }
 
   /* Chevron on active round-chip's h3 becomes hidden (no need to collapse within Play) */
   #tab-play-strokes .course-section > h3 { pointer-events: none; }
@@ -1064,13 +1069,13 @@
         <span class="ts-score" id="ts-b-score">0</span>
       </div>
     </div>
+    <nav class="app-tab-bar" role="tablist" aria-label="Main sections">
+      <button class="app-tab active" role="tab" aria-selected="true" data-tab-target="play" onclick="switchTab('play')">Play</button>
+      <button class="app-tab" role="tab" aria-selected="false" data-tab-target="matches" onclick="switchTab('matches')">Matches</button>
+      <button class="app-tab" role="tab" aria-selected="false" data-tab-target="standings" onclick="switchTab('standings')">Standings</button>
+      <button class="app-tab" role="tab" aria-selected="false" data-tab-target="setup" onclick="switchTab('setup')">Setup</button>
+    </nav>
   </header>
-  <nav class="app-tab-bar" role="tablist" aria-label="Main sections">
-    <button class="app-tab active" role="tab" aria-selected="true" data-tab-target="play" onclick="switchTab('play')">Play</button>
-    <button class="app-tab" role="tab" aria-selected="false" data-tab-target="matches" onclick="switchTab('matches')">Matches</button>
-    <button class="app-tab" role="tab" aria-selected="false" data-tab-target="standings" onclick="switchTab('standings')">Standings</button>
-    <button class="app-tab" role="tab" aria-selected="false" data-tab-target="setup" onclick="switchTab('setup')">Setup</button>
-  </nav>
   <!-- STEP 1: Players + Handicaps -->
   <section class="step" data-tab="setup">
     <h2><span class="step-num">1</span> Players &amp; Teams</h2>
@@ -2824,17 +2829,15 @@ function loadCollapseState() {
     });
   } else {
     // Defaults: keep Gross Strokes (Round 1 only), Match Schedule, Leaderboards open.
-    // Defaults after Match Schedule moved to Step 2:
-    //   0 Players — collapsed
-    //   1 Match Schedule — open
-    //   2 Course Setup — collapsed
-    //   3 Gross Strokes — open (Round 1 only)
-    //   4 Leaderboards — open
+    // Defaults (only apply to Course Setup sub-rounds — never to Play tab rounds,
+    // which the round-chip selector controls exclusively).
     if (steps[0]) steps[0].classList.add('collapsed');
     if (steps[2]) steps[2].classList.add('collapsed');
-    document.querySelectorAll('.course-section[data-round-slot="round2"], .course-section[data-round-slot="round3"], .course-section[data-round-slot="round4"]').forEach(s => {
+    document.querySelectorAll('.step:not(#tab-play-strokes) .course-section[data-round-slot="round2"], .step:not(#tab-play-strokes) .course-section[data-round-slot="round3"], .step:not(#tab-play-strokes) .course-section[data-round-slot="round4"]').forEach(s => {
       s.classList.add('collapsed');
     });
+    // Belt-and-braces: strip any collapsed class from Play tab rounds
+    document.querySelectorAll('#tab-play-strokes .course-section.collapsed').forEach(s => s.classList.remove('collapsed'));
   }
 }
 
@@ -2887,6 +2890,8 @@ function switchRound(roundId) {
     chip.classList.toggle("active", isActive);
     chip.setAttribute("aria-selected", isActive ? "true" : "false");
   });
+  // Ensure the target section isn't in collapsed state (belt-and-braces)
+  document.querySelectorAll('#tab-play-strokes .course-section.collapsed').forEach(s => s.classList.remove('collapsed'));
 }
 
 function renderRoundChips() {
