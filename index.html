@@ -842,10 +842,235 @@
     display: none !important;
   }
   .course-section > h3:hover { opacity: 0.85; }
+
+
+  /* ============================================================
+     UX Reimagining: sticky app-shell, tab bar, round chips
+     ============================================================ */
+  body { padding: 0; padding-top: 0; padding-bottom: 20px; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 0 12px 20px; }
+
+  .app-header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--navy);
+    color: white;
+    margin: 0 -12px 0;
+    padding: 10px 16px 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .app-header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+  .app-title {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    color: white;
+  }
+  .app-sync-cluster {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #c8d3e0;
+  }
+  .app-sync-cluster .sync-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gray-500); }
+  .app-sync-cluster .sync-dot.on { background: #4ade80; box-shadow: 0 0 6px rgba(74,222,128,0.7); }
+  .app-sync-cluster .sync-dot.err { background: #ef4444; }
+  .app-sync-cluster .sync-dot.pending { background: var(--gold); animation: syncpulse 1s ease-in-out infinite; }
+  .app-refresh-btn {
+    background: rgba(255,255,255,0.1);
+    color: white;
+    border: none;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .app-refresh-btn:hover { background: rgba(255,255,255,0.2); }
+
+  .team-scoreboard {
+    display: flex;
+    align-items: stretch;
+    background: rgba(0,0,0,0.15);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .ts-side {
+    flex: 1;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .ts-a { background: rgba(29, 78, 216, 0.85); }
+  .ts-b { background: rgba(185, 28, 28, 0.85); }
+  .ts-label {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: white;
+  }
+  .ts-score {
+    font-size: 24px;
+    font-weight: 800;
+    color: white;
+    line-height: 1;
+  }
+  .ts-vs {
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    font-size: 10px;
+    color: #c8d3e0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 700;
+    background: transparent;
+  }
+  .ts-side.leading { box-shadow: inset 0 -3px 0 var(--gold); }
+
+  .app-tab-bar {
+    position: sticky;
+    top: 108px;
+    z-index: 49;
+    background: white;
+    display: flex;
+    border-bottom: 2px solid var(--gray-200);
+    margin: 0 -12px 12px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  }
+  .app-tab {
+    flex: 1;
+    background: transparent;
+    border: none;
+    padding: 12px 4px 10px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: var(--gray-500);
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+    min-height: 44px;  /* touch target */
+  }
+  .app-tab:hover { color: var(--navy); background: var(--gray-50); }
+  .app-tab.active { color: var(--navy); border-bottom-color: var(--gold); background: var(--gray-50); }
+  .app-tab:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
+
+  /* Hide sections that don't belong to the active tab */
+  .step[data-tab] { display: none; }
+  body[data-active-tab="play"] .step[data-tab~="play"] { display: block; }
+  body[data-active-tab="matches"] .step[data-tab~="matches"] { display: block; }
+  body[data-active-tab="standings"] .step[data-tab~="standings"] { display: block; }
+  body[data-active-tab="setup"] .step[data-tab~="setup"] { display: block; }
+  /* Admin bar also tab-filtered */
+  .sync-bar.admin-bar[data-tab] { display: none; }
+  body[data-active-tab="setup"] .sync-bar.admin-bar[data-tab~="setup"] { display: block; }
+
+  /* Round chips (Play tab) */
+  .round-chips {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    overflow-x: auto;
+    padding: 4px 0 6px;
+  }
+  .round-chip {
+    flex: 1 0 auto;
+    min-width: 96px;
+    background: white;
+    border: 2px solid var(--gray-200);
+    border-radius: 10px;
+    padding: 8px 12px;
+    text-align: center;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.15s;
+    min-height: 56px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+  }
+  .round-chip:hover { border-color: var(--navy); }
+  .round-chip.active { background: var(--navy); border-color: var(--navy); color: white; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+  .round-chip-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: var(--gray-500); }
+  .round-chip.active .round-chip-label { color: rgba(255,255,255,0.8); }
+  .round-chip-course { font-size: 13px; font-weight: 600; }
+  .round-chip:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+  /* When a round-chip is active, only that round's course-section shows in Play tab scorecards */
+  body[data-active-round="round1"] #tab-play-strokes .course-section[data-round-slot="round2"],
+  body[data-active-round="round1"] #tab-play-strokes .course-section[data-round-slot="round3"],
+  body[data-active-round="round1"] #tab-play-strokes .course-section[data-round-slot="round4"] { display: none !important; }
+  body[data-active-round="round2"] #tab-play-strokes .course-section[data-round-slot="round1"],
+  body[data-active-round="round2"] #tab-play-strokes .course-section[data-round-slot="round3"],
+  body[data-active-round="round2"] #tab-play-strokes .course-section[data-round-slot="round4"] { display: none !important; }
+  body[data-active-round="round3"] #tab-play-strokes .course-section[data-round-slot="round1"],
+  body[data-active-round="round3"] #tab-play-strokes .course-section[data-round-slot="round2"],
+  body[data-active-round="round3"] #tab-play-strokes .course-section[data-round-slot="round4"] { display: none !important; }
+  /* Force the active round's course-section OPEN even if user had collapsed it */
+  #tab-play-strokes .course-section.collapsed > *:not(h3) { display: none; }
+
+  /* Chevron on active round-chip's h3 becomes hidden (no need to collapse within Play) */
+  #tab-play-strokes .course-section > h3 { pointer-events: none; }
+  #tab-play-strokes .course-section > h3::after { display: none; }
+
+  /* Step section chevron removed inside tabs — tab bar handles nav */
+  .app-in-tabs .step h2 { cursor: default; }
+  .app-in-tabs .step h2::after { display: none; }
+  .app-in-tabs .step.collapsed > *:not(h2) { display: block; }  /* undo collapse in tab mode */
+  .app-in-tabs .step .step-num { display: none; }  /* numbers redundant with tabs */
+
+  /* Slim step padding on mobile now that we have less chrome */
+  .step { padding: 14px 16px; margin-bottom: 12px; }
+
+  /* Hide the old header + old sync-bar in tab mode */
+  .app-in-tabs > header,
+  .app-in-tabs > section.sync-bar:not(.admin-bar) { display: none; }
 </style>
 </head>
-<body>
+<body class="app-in-tabs" data-active-tab="play" data-active-round="round1">
 <div class="container">
+  <header class="app-header">
+    <div class="app-header-top">
+      <div class="app-title">Fancourt 2026</div>
+      <div class="app-sync-cluster">
+        <span class="sync-dot" id="sync-dot"></span>
+        <span id="sync-label">Sync: off</span>
+        <button class="app-refresh-btn" onclick="refreshSyncNow()" type="button" id="sync-refresh-btn">Refresh</button>
+      </div>
+    </div>
+    <div class="team-scoreboard" id="header-scoreboard">
+      <div class="ts-side ts-a" id="ts-side-a">
+        <span class="ts-label">Team A</span>
+        <span class="ts-score" id="ts-a-score">0</span>
+      </div>
+      <div class="ts-vs">vs</div>
+      <div class="ts-side ts-b" id="ts-side-b">
+        <span class="ts-label">Team B</span>
+        <span class="ts-score" id="ts-b-score">0</span>
+      </div>
+    </div>
+  </header>
+  <nav class="app-tab-bar" role="tablist" aria-label="Main sections">
+    <button class="app-tab active" role="tab" aria-selected="true" data-tab-target="play" onclick="switchTab('play')">Play</button>
+    <button class="app-tab" role="tab" aria-selected="false" data-tab-target="matches" onclick="switchTab('matches')">Matches</button>
+    <button class="app-tab" role="tab" aria-selected="false" data-tab-target="standings" onclick="switchTab('standings')">Standings</button>
+    <button class="app-tab" role="tab" aria-selected="false" data-tab-target="setup" onclick="switchTab('setup')">Setup</button>
+  </nav>
   <header>
     <div class="header-title">Fancourt 2026</div>
     <h1 class="sr-only">Fancourt 2026</h1>
@@ -863,7 +1088,7 @@
   </section>
 
   <!-- STEP 1: Players + Handicaps -->
-  <section class="step">
+  <section class="step" data-tab="setup">
     <h2><span class="step-num">1</span> Players &amp; Teams</h2>
     <input type="hidden" id="player-count-input" value="8">
     <div class="players-grid" id="players-list"></div>
@@ -871,14 +1096,14 @@
   </section>
 
   <!-- STEP 2: Match Schedule -->
-  <section class="step">
+  <section class="step" data-tab="matches">
     <h2><span class="step-num">2</span> Match schedule (best-ball match play)</h2>
     <div class="help-text">Editable pairings for the 3 days. Each match compares each pair's best-ball stableford on every hole. Whoever wins the most holes wins the match.</div>
     <div id="match-schedule-display"></div>
   </section>
 
   <!-- STEP 3: Course Setup -->
-  <section class="step">
+  <section class="step" data-tab="setup">
     <h2><span class="step-num">3</span> Course setup &mdash; par &amp; stroke index</h2>
     <input type="hidden" id="round-count-input" value="3">
     <div class="info-box">
@@ -923,9 +1148,10 @@
   </section>
 
   <!-- STEP 4: Scores -->
-  <section class="step">
+  <section class="step" data-tab="play" id="tab-play-strokes">
     <h2><span class="step-num">4</span> Gross strokes</h2>
-    <div class="help-text">Enter each player's course handicap (next to their name) and gross strokes per hole. Stableford points are calculated automatically. Leaderboards below update live as you type.</div>
+    <div class="round-chips" id="round-chips-play" role="tablist" aria-label="Select round"></div>
+    <div class="help-text">Tap a round above to switch. Handicaps are entered next to each player name.</div>
     <div class="course-section" data-round-slot="round1">
       <h3 id="scorecard-title-round1">Round 1 &mdash; holes 1&ndash;18</h3>
       <div class="scorecard-wrap"><table class="scorecard" id="scorecard-round1"></table></div>
@@ -945,7 +1171,7 @@
   </section>
 
   <!-- STEP 5: Leaderboards -->
-  <section class="step">
+  <section class="step" data-tab="standings">
     <h2><span class="step-num">5</span> Leaderboards</h2>
     <div class="help-text">Both leaderboards update live as scores are entered.</div>
     <h3 style="color: var(--green-dark); font-size: 15px; margin-top: 14px;">Team competition (match play points)</h3>
@@ -954,7 +1180,7 @@
     <div id="individual-leaderboard"></div>
   </section>
 
-  <section class="sync-bar admin-bar">
+  <section class="sync-bar admin-bar" data-tab="setup">
     <div class="sync-bar-top">
       <div class="sync-status">
         <span style="font-weight:600;">Admin tools</span>
@@ -1414,6 +1640,8 @@ function applyCatalogCourse(slotId, catalogKey) {
   if (state.revealed) revealWinners();
 }
 function refreshCourseTitles() {
+  // Also refresh round chips (course name may have changed)
+  if (typeof renderRoundChips === "function") renderRoundChips();
   COURSES.forEach(c => {
     const info = state.courseInfo[c.id];
     const name = (info && info.name) || c.name || c.id;
@@ -2520,6 +2748,7 @@ function refreshLeaderboards() {
   renderMatchSchedule();
   renderIndividualLeaderboard();
   renderTeamLeaderboard();
+  renderHeaderScoreboard();
 }
 
 function resetMatchSchedule() {
@@ -2639,6 +2868,82 @@ function initCollapsibles() {
   loadCollapseState();
 }
 
+
+// ---------- Tab bar + round chips ----------
+const UI_KEY = "fancourt_ui_v2";
+let uiState = { tab: "play", activeRound: "round1" };
+try {
+  const raw = localStorage.getItem(UI_KEY);
+  if (raw) Object.assign(uiState, JSON.parse(raw));
+} catch(e) {}
+
+function saveUiState() {
+  try { localStorage.setItem(UI_KEY, JSON.stringify(uiState)); } catch(e) {}
+}
+
+function switchTab(tabName) {
+  uiState.tab = tabName;
+  saveUiState();
+  document.body.setAttribute("data-active-tab", tabName);
+  document.querySelectorAll(".app-tab").forEach(btn => {
+    const isActive = btn.getAttribute("data-tab-target") === tabName;
+    btn.classList.toggle("active", isActive);
+    btn.setAttribute("aria-selected", isActive ? "true" : "false");
+  });
+  // Scroll to top of the container when switching tabs
+  window.scrollTo({ top: 0, behavior: "instant" });
+}
+
+function switchRound(roundId) {
+  uiState.activeRound = roundId;
+  saveUiState();
+  document.body.setAttribute("data-active-round", roundId);
+  document.querySelectorAll("#round-chips-play .round-chip").forEach(chip => {
+    const isActive = chip.getAttribute("data-round-target") === roundId;
+    chip.classList.toggle("active", isActive);
+    chip.setAttribute("aria-selected", isActive ? "true" : "false");
+  });
+}
+
+function renderRoundChips() {
+  const c = document.getElementById("round-chips-play");
+  if (!c) return;
+  c.innerHTML = "";
+  const active = getActiveCourses();
+  active.forEach((course, i) => {
+    const info = state.courseInfo[course.id];
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "round-chip" + (course.id === uiState.activeRound ? " active" : "");
+    chip.setAttribute("role", "tab");
+    chip.setAttribute("aria-selected", course.id === uiState.activeRound ? "true" : "false");
+    chip.setAttribute("data-round-target", course.id);
+    chip.innerHTML =
+      '<span class="round-chip-label">Round ' + (i + 1) + '</span>' +
+      '<span class="round-chip-course">' + ((info && info.name) || course.name) + '</span>';
+    chip.addEventListener("click", () => switchRound(course.id));
+    c.appendChild(chip);
+  });
+  // If uiState.activeRound isn't among active courses, fall back to the first
+  if (!active.some(c => c.id === uiState.activeRound)) {
+    switchRound(active[0] ? active[0].id : "round1");
+  }
+}
+
+function renderHeaderScoreboard() {
+  const aScore = document.getElementById("ts-a-score");
+  const bScore = document.getElementById("ts-b-score");
+  const aSide = document.getElementById("ts-side-a");
+  const bSide = document.getElementById("ts-side-b");
+  if (!aScore || !bScore) return;
+  const s = computeTeamStandings();
+  const fmt = n => (Math.round(n * 10) / 10);
+  aScore.textContent = fmt(s.aTotal);
+  bScore.textContent = fmt(s.bTotal);
+  if (aSide) aSide.classList.toggle("leading", s.aTotal > s.bTotal);
+  if (bSide) bSide.classList.toggle("leading", s.bTotal > s.aTotal);
+}
+
 // ---------- Init ----------
 function init() {
   applyRoundCountVisibility();
@@ -2649,7 +2954,11 @@ function init() {
   renderCourseSetup();
   renderScorecards();
   refreshLeaderboards();
+  renderRoundChips();
   initCollapsibles();
+  // Apply saved UI state
+  switchTab(uiState.tab || "play");
+  switchRound(uiState.activeRound || "round1");
   bootSync();
 }
 init();
