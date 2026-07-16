@@ -345,6 +345,49 @@
   .scorecard tr.ghost-row td.score-cell { background: #fffbe7; }
   .scorecard tr.match-start-row td { border-top: 3px double var(--green-dark); }
 
+  /* Match result row (running match state hole-by-hole, under each 4-ball) */
+  .scorecard tr.match-result-row td {
+    background: #0f172a;
+    color: white;
+    font-weight: 700;
+    font-size: 11px;
+    padding: 6px 2px;
+    text-align: center;
+    border-top: 2px solid var(--gray-300);
+  }
+  .scorecard tr.match-result-row td.name-cell,
+  .scorecard tr.match-result-row td.match-result-label {
+    background: #0f172a;
+    color: white;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 6px 10px;
+    text-align: left;
+  }
+  .scorecard tr.match-result-row .mr-tag {
+    display: inline-block;
+    background: rgba(255,255,255,0.15);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    margin-right: 6px;
+  }
+  .scorecard tr.match-result-row td.match-result-total {
+    background: #0f172a;
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 6px 6px;
+    white-space: nowrap;
+  }
+  /* Per-hole state colours */
+  .scorecard tr.match-result-row td.mrc-a-up { background: #1d4ed8; color: white; }
+  .scorecard tr.match-result-row td.mrc-b-up { background: #b91c1c; color: white; }
+  .scorecard tr.match-result-row td.mrc-halved { background: #d4a017; color: #0f1929; }
+
   /* Match state strip (Play tab, above each round's scorecard) */
   .match-state-strip {
     display: flex;
@@ -1866,6 +1909,48 @@ function updateMatchStateStrips() {
   });
 }
 
+function updateMatchResultRows() {
+  COURSES.forEach(course => {
+    const roundIdx = COURSES.indexOf(course);
+    const scheduleDay = (state.matchSchedule || DEFAULT_MATCH_SCHEDULE).find(d => d.roundIdx === roundIdx);
+    if (!scheduleDay) return;
+    scheduleDay.matches.forEach((m, mi) => {
+      let aWins = 0, bWins = 0, holesPlayed = 0;
+      for (let h = 0; h < HOLES; h++) {
+        const anyA = m.teamA.some(pi => state.scores[course.id][pi][h] !== "" && state.scores[course.id][pi][h] != null);
+        const anyB = m.teamB.some(pi => state.scores[course.id][pi][h] !== "" && state.scores[course.id][pi][h] != null);
+        const cell = document.getElementById("matchresult-" + course.id + "-" + mi + "-" + h);
+        let text = "", cls = "match-result-cell";
+        if (anyA || anyB) {
+          const aPts = bestBallStableford(m.teamA, course.id, h);
+          const bPts = bestBallStableford(m.teamB, course.id, h);
+          if (aPts > bPts) aWins++;
+          else if (bPts > aPts) bWins++;
+          holesPlayed++;
+          const lead = aWins - bWins;
+          if (lead === 0) { text = "AS"; cls += " mrc-halved"; }
+          else if (lead > 0) { text = "A " + lead; cls += " mrc-a-up"; }
+          else { text = "B " + Math.abs(lead); cls += " mrc-b-up"; }
+        }
+        if (cell) { cell.textContent = text; cell.className = cls; }
+      }
+      // Total cell: overall match status text
+      const status = computeMatchStatus(m, roundIdx);
+      const totalTd = document.getElementById("matchresult-total-" + course.id + "-" + mi);
+      if (totalTd) {
+        totalTd.textContent = status ? status.status : "";
+        let totalCls = "total-cell match-result-total";
+        if (status && status.holesPlayed > 0) {
+          if (status.aPoints > status.bPoints) totalCls += " mrc-a-up";
+          else if (status.bPoints > status.aPoints) totalCls += " mrc-b-up";
+          else totalCls += " mrc-halved";
+        }
+        totalTd.className = totalCls;
+      }
+    });
+  });
+}
+
 function getPlayerOrderForCourse(course) {
   // Order players so each round's scorecard mirrors that round's Match Schedule:
   // match 1 (A pair, then B pair), then match 2 (A pair, then B pair), etc.
@@ -1956,23 +2041,16 @@ function renderScorecards() {
     table.appendChild(thead);
 
     const tbody = document.createElement("tbody");
-    const playerOrder = getPlayerOrderForCourse(course);
-    // Determine which players form the start of each match (for visual dividers).
     const scheduleDay = (state.matchSchedule || DEFAULT_MATCH_SCHEDULE).find(d => d.roundIdx === COURSES.indexOf(course));
-    const matchStartIndices = new Set();
-    if (scheduleDay) {
-      let running = 0;
-      scheduleDay.matches.forEach((m, mi) => {
-        if (mi > 0) matchStartIndices.add(running);
-        running += m.teamA.length + m.teamB.length;
-      });
-    }
-    playerOrder.forEach((pi, rowIdx) => {
+
+    // Helper to add a single player row to tbody
+    function addPlayerRow(pi, opts) {
+      opts = opts || {};
       const name = state.players[pi];
       const tr = document.createElement("tr");
       tr.id = "scorerow-" + course.id + "-" + pi;
       if (isGhostName(name)) tr.classList.add("ghost-row");
-      if (matchStartIndices.has(rowIdx)) tr.classList.add("match-start-row");
+      if (opts.matchStart) tr.classList.add("match-start-row");
 
       const nameTd = document.createElement("td");
       nameTd.className = "name-cell";
@@ -2034,7 +2112,45 @@ function renderScorecards() {
       totalTd.id = "total-" + course.id + "-" + pi;
       tr.appendChild(totalTd);
       tbody.appendChild(tr);
-    });  // playerOrder.forEach
+    }  // end addPlayerRow
+
+    // Add a result row for a given match index (populated later by updateMatchResultRows)
+    function addResultRow(mi) {
+      const rr = document.createElement("tr");
+      rr.className = "match-result-row";
+      rr.id = "matchresult-row-" + course.id + "-" + mi;
+      const labelTd = document.createElement("td");
+      labelTd.className = "name-cell match-result-label";
+      labelTd.innerHTML = '<span class="mr-tag">M' + (mi + 1) + '</span> Result';
+      rr.appendChild(labelTd);
+      for (let h = 0; h < HOLES; h++) {
+        const td = document.createElement("td");
+        td.className = "match-result-cell";
+        td.id = "matchresult-" + course.id + "-" + mi + "-" + h;
+        rr.appendChild(td);
+      }
+      const totalTd = document.createElement("td");
+      totalTd.className = "total-cell match-result-total";
+      totalTd.id = "matchresult-total-" + course.id + "-" + mi;
+      rr.appendChild(totalTd);
+      tbody.appendChild(rr);
+    }
+
+    // Iterate matches: for each, add its 4 player rows, then a Result row
+    if (scheduleDay) {
+      scheduleDay.matches.forEach((m, mi) => {
+        const matchPlayers = m.teamA.concat(m.teamB);
+        matchPlayers.forEach((pi, subIdx) => {
+          addPlayerRow(pi, { matchStart: (mi > 0 && subIdx === 0) });
+        });
+        addResultRow(mi);
+      });
+    } else {
+      // Fallback (should not happen for Fancourt Trophy)
+      const order = getPlayerOrderForCourse(course);
+      order.forEach(pi => addPlayerRow(pi, {}));
+    }
+
     table.appendChild(tbody);
   });
   refreshAllStablefordDisplays();
@@ -2043,6 +2159,7 @@ function renderScorecards() {
 function refreshAllStablefordDisplays() {
   refreshLeaderboards();
   updateMatchStateStrips();
+  updateMatchResultRows();
   COURSES.forEach(course => {
     state.players.forEach((_, pi) => {
       const isGhost = isPlayerGhost(pi);
