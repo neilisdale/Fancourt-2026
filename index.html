@@ -344,6 +344,67 @@
   }
   .scorecard tr.ghost-row td.score-cell { background: #fffbe7; }
   .scorecard tr.match-start-row td { border-top: 3px double var(--green-dark); }
+
+  /* Match state strip (Play tab, above each round's scorecard) */
+  .match-state-strip {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 8px 0 12px;
+  }
+  .mss-item {
+    padding: 10px 14px;
+    border-radius: 8px;
+    background: var(--gray-100);
+    border-left: 4px solid var(--gray-300);
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+  }
+  .mss-label {
+    background: var(--navy);
+    color: white;
+    padding: 3px 9px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    line-height: 1.3;
+  }
+  .mss-teams {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    color: var(--gray-700);
+    font-size: 12px;
+    line-height: 1.25;
+    min-width: 0;
+  }
+  .mss-t { font-weight: 600; }
+  .mss-t-a { color: #1d4ed8; }
+  .mss-t-b { color: #b91c1c; }
+  .mss-vs { font-size: 9px; color: var(--gray-500); font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; }
+  .mss-status {
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--gray-700);
+    white-space: nowrap;
+    text-align: right;
+  }
+  .mss-item.mss-a-up   { background: rgba(29,78,216,0.10); border-left-color: #1d4ed8; }
+  .mss-item.mss-a-up   .mss-status { color: #1d4ed8; }
+  .mss-item.mss-b-up   { background: rgba(185,28,28,0.10); border-left-color: #b91c1c; }
+  .mss-item.mss-b-up   .mss-status { color: #b91c1c; }
+  .mss-item.mss-halved { background: rgba(212,160,23,0.10); border-left-color: var(--gold); }
+  .mss-item.mss-halved .mss-status { color: var(--gold-dark); }
+  @media (max-width: 480px) {
+    .mss-item { grid-template-columns: auto 1fr auto; gap: 8px; padding: 8px 10px; }
+    .mss-teams { font-size: 11px; }
+    .mss-status { font-size: 14px; }
+  }
   .scorecard input.stroke-input {
     width: 100%;
     height: 28px;
@@ -1754,6 +1815,57 @@ function refreshParTotal(courseId) {
 }
 
 // ---------- STEP 3: Scorecards ----------
+function ensureMatchStateStrip(course) {
+  const wrap = document.querySelector('.course-section[data-round-slot="' + course.id + '"] .scorecard-wrap');
+  if (!wrap) return;
+  const section = wrap.parentElement;
+  let strip = section.querySelector(".match-state-strip");
+  if (!strip) {
+    strip = document.createElement("div");
+    strip.className = "match-state-strip";
+    strip.id = "mss-strip-" + course.id;
+    section.insertBefore(strip, wrap);
+  }
+  populateMatchStateStrip(course, strip);
+}
+
+function populateMatchStateStrip(course, strip) {
+  const roundIdx = COURSES.indexOf(course);
+  const schedule = (state.matchSchedule || DEFAULT_MATCH_SCHEDULE).find(d => d.roundIdx === roundIdx);
+  strip.innerHTML = "";
+  if (!schedule) return;
+  schedule.matches.forEach((m, mi) => {
+    const status = computeMatchStatus(m, schedule.roundIdx);
+    const item = document.createElement("div");
+    let cls = "mss-item";
+    if (status && status.holesPlayed > 0) {
+      if (status.aPoints > status.bPoints) cls += " mss-a-up";
+      else if (status.bPoints > status.aPoints) cls += " mss-b-up";
+      else cls += " mss-halved";
+    }
+    item.className = cls;
+    item.id = "mss-" + course.id + "-" + mi;
+    const teamAName = m.teamA.map(pi => displayName(pi)).join(" & ");
+    const teamBName = m.teamB.map(pi => displayName(pi)).join(" & ");
+    item.innerHTML =
+      '<span class="mss-label">M' + (mi + 1) + '</span>' +
+      '<span class="mss-teams">' +
+        '<span class="mss-t mss-t-a">' + teamAName + '</span>' +
+        '<span class="mss-vs">vs</span>' +
+        '<span class="mss-t mss-t-b">' + teamBName + '</span>' +
+      '</span>' +
+      '<span class="mss-status">' + (status ? status.status : "—") + '</span>';
+    strip.appendChild(item);
+  });
+}
+
+function updateMatchStateStrips() {
+  COURSES.forEach(course => {
+    const strip = document.getElementById("mss-strip-" + course.id);
+    if (strip) populateMatchStateStrip(course, strip);
+  });
+}
+
 function getPlayerOrderForCourse(course) {
   // Order players so each round's scorecard mirrors that round's Match Schedule:
   // match 1 (A pair, then B pair), then match 2 (A pair, then B pair), etc.
@@ -1789,6 +1901,8 @@ function renderScorecards() {
   COURSES.forEach(course => {
     const table = document.getElementById("scorecard-" + course.id);
     table.innerHTML = "";
+    // Ensure a match-state-strip exists just above the scorecard-wrap
+    ensureMatchStateStrip(course);
     const thead = document.createElement("thead");
     const info = state.courseInfo[course.id];
 
@@ -1928,6 +2042,7 @@ function renderScorecards() {
 
 function refreshAllStablefordDisplays() {
   refreshLeaderboards();
+  updateMatchStateStrips();
   COURSES.forEach(course => {
     state.players.forEach((_, pi) => {
       const isGhost = isPlayerGhost(pi);
