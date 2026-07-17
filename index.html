@@ -2400,6 +2400,12 @@ let pollHandle = null;
 let pushTimer = null;
 let lastAppliedRemoteTs = 0;
 let suppressPollUntil = 0;
+// Snapshot of the state as it was the last time we know it matched the shared bin
+// (right after a successful push or pull). Used as the "base" in a 3-way merge so
+// that pushing/pulling never blindly overwrites cells that changed on the *other*
+// side since that point — this is what stops handicaps/scores from reverting to
+// zero when two devices sync around the same time.
+let lastSyncedSnapshot = null;
 
 function saveSyncCfg() {
   try { localStorage.setItem(SYNC_CONFIG_KEY, JSON.stringify(syncCfg)); } catch (e) {}
@@ -2421,6 +2427,109 @@ function setSyncStatus(s, msg) {
   label.textContent = msg || defaults[s] || s;
 }
 
+function snapshotState(s) {
+  try { return JSON.parse(JSON.stringify(s)); } catch (e) { return null; }
+}
+
+// Merge a "courseId -> array[playerIndex]" field (handicapsByCourse).
+// Per cell: if the local value differs from the last-synced base, local was edited
+// since we last synced, so local wins. Otherwise take remote's value, so edits made
+// elsewhere (that we haven't touched) come through instead of being stomped.
+function mergeCourseArrayField(base, local, remote, playerCount) {
+  const out = {};
+  COURSES.forEach(c => {
+    const b = (base && base[c.id]) || [];
+    const l = (local && local[c.id]) || [];
+    const r = (remote && remote[c.id]) || [];
+    const merged = [];
+    for (let i = 0; i < playerCount; i++) {
+      const bv = b[i] !== undefined ? b[i] : 0;
+      const lv = l[i] !== undefined ? l[i] : 0;
+      const rv = r[i] !== undefined ? r[i] : bv;
+      merged[i] = (lv !== bv) ? lv : rv;
+    }
+    out[c.id] = merged;
+  });
+  return out;
+}
+
+// Same idea as above, one level deeper: "courseId -> array[playerIndex] -> array[hole]".
+function mergeScoresField(base, local, remote, playerCount) {
+  const out = {};
+  COURSES.forEach(c => {
+    const b = (base && base[c.id]) || [];
+    const l = (local && local[c.id]) || [];
+    const r = (remote && remote[c.id]) || [];
+    const mergedPlayers = [];
+    for (let i = 0; i < playerCount; i++) {
+      const bRow = b[i] || [];
+      const lRow = l[i] || [];
+      const rRow = r[i] || [];
+      const mergedRow = [];
+      for (let h = 0; h < HOLES; h++) {
+        const bv = bRow[h] !== undefined ? bRow[h] : "";
+        const lv = lRow[h] !== undefined ? lRow[h] : "";
+        const rv = rRow[h] !== undefined ? rRow[h] : bv;
+        mergedRow[h] = (lv !== bv) ? lv : rv;
+      }
+      mergedPlayers.push(mergedRow);
+    }
+    out[c.id] = mergedPlayers;
+  });
+  return out;
+}
+
+// Build a full merged state. handicapsByCourse and scores (the two grids people are
+// actively typing into) are merged cell-by-cell against the last-synced base so
+// neither side clobbers the other's edits. Everything else (players list, course
+// info, schedule, etc.) changes far less often and isn't edited concurrently in
+// practice, so we just take it from whichever full state is more recent.
+function mergeStates(base, local, remote) {
+  const playerCount = (local && local.players && local.players.length) || MAX_PLAYERS;
+  const localNewer = (local._updatedAt || 0) >= (remote._updatedAt || 0);
+  const merged = Object.assign({}, localNewer ? local : remote);
+  merged.handicapsByCourse = mergeCourseArrayField(base && base.handicapsByCourse, local.handicapsByCourse, remote.handicapsByCourse, playerCount);
+  merged.scores = mergeScoresField(base && base.scores, local.scores, remote.scores, playerCount);
+  return merged;
+}
+
+// Swap in a new full state (from a remote pull or a pull-merge-push), re-render
+// everything, and restore focus/cursor position so an in-progress edit isn't
+// disrupted if this runs while the field is (rarely) still focused.
+function replaceLocalState(newState) {
+  const focused = document.activeElement;
+  const focusedId = focused && focused.id ? focused.id : null;
+  const focusedSelStart = focused && focused.selectionStart;
+  state = newState;
+  migrateCourseKeys(state);
+  if (!Array.isArray(state.matchSchedule)) {
+    state.matchSchedule = cloneSchedule(DEFAULT_MATCH_SCHEDULE);
+  }
+  if (!state.handicapsByCourse) state.handicapsByCourse = makeHandicapsByCourse(state.players.length);
+  COURSES.forEach(c => {
+    if (!Array.isArray(state.handicapsByCourse[c.id])) state.handicapsByCourse[c.id] = Array(state.players.length).fill(0);
+  });
+  applyRoundCountVisibility();
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+  const countInp = document.getElementById("player-count-input");
+  if (countInp) countInp.value = state.players.length;
+  renderPlayers();
+  renderCourseSelectors();
+  refreshCourseTitles();
+  renderCourseSetup();
+  renderScorecards();
+  refreshLeaderboards();
+  if (focusedId) {
+    const el = document.getElementById(focusedId);
+    if (el && el.focus) {
+      el.focus();
+      if (typeof focusedSelStart === "number" && el.setSelectionRange) {
+        try { el.setSelectionRange(focusedSelStart, focusedSelStart); } catch(e){}
+      }
+    }
+  }
+}
+
 async function fetchRemote() {
   if (!isSyncConfigured()) return null;
   try {
@@ -2436,11 +2545,24 @@ async function fetchRemote() {
   }
 }
 
-async function pushRemote() {
+async function pushRemote(forceOverwrite) {
   if (!isSyncConfigured()) return;
-  state._updatedAt = Date.now();
   setSyncStatus("pending");
   try {
+    // Pull-merge-push: reconcile with whatever's currently in the bin before we
+    // overwrite it. Without this, pushing our full local state stomps any
+    // handicap/score cells that changed on another device since our last sync,
+    // even if we never touched those cells ourselves.
+    if (!forceOverwrite && lastSyncedSnapshot) {
+      const remote = await fetchRemote();
+      if (remote && isRemoteCompatible(remote)) {
+        const merged = mergeStates(lastSyncedSnapshot, state, remote);
+        if (JSON.stringify(merged) !== JSON.stringify(state)) {
+          replaceLocalState(merged);
+        }
+      }
+    }
+    state._updatedAt = Date.now();
     const res = await fetch("https://api.jsonbin.io/v3/b/" + encodeURIComponent(syncCfg.binId), {
       method: "PUT",
       headers: { "Content-Type": "application/json", "X-Master-Key": syncCfg.masterKey },
@@ -2449,6 +2571,7 @@ async function pushRemote() {
     if (!res.ok) { setSyncStatus("err"); return; }
     suppressPollUntil = Date.now() + 3000;
     lastAppliedRemoteTs = state._updatedAt;
+    lastSyncedSnapshot = snapshotState(state);
     setSyncStatus("on");
   } catch (e) {
     setSyncStatus("err");
@@ -2493,40 +2616,11 @@ function applyRemoteState(remote) {
     pushRemote();
     return;
   }
-  const focused = document.activeElement;
-  const focusedId = focused && focused.id ? focused.id : null;
-  const focusedSelStart = focused && focused.selectionStart;
-  state = remote;
-  migrateCourseKeys(state);
-  // Ensure shape integrity after remote load
-  if (!Array.isArray(state.matchSchedule)) {
-    state.matchSchedule = cloneSchedule(DEFAULT_MATCH_SCHEDULE);
-  }
-  if (!state.handicapsByCourse) state.handicapsByCourse = makeHandicapsByCourse(state.players.length);
-  COURSES.forEach(c => {
-    if (!Array.isArray(state.handicapsByCourse[c.id])) state.handicapsByCourse[c.id] = Array(state.players.length).fill(0);
-  });
-  applyRoundCountVisibility();
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
-  // Re-bind player-count input value
-  const countInp = document.getElementById("player-count-input");
-  if (countInp) countInp.value = state.players.length;
-  renderPlayers();
-  renderCourseSelectors();
-  refreshCourseTitles();
-  renderCourseSetup();
-  renderScorecards();
-  refreshLeaderboards();
-  // (No draw buttons/status in Fancourt Trophy — schedule is fixed.)
-  if (focusedId) {
-    const el = document.getElementById(focusedId);
-    if (el && el.focus) {
-      el.focus();
-      if (typeof focusedSelStart === "number" && el.setSelectionRange) {
-        try { el.setSelectionRange(focusedSelStart, focusedSelStart); } catch(e){}
-      }
-    }
-  }
+  // Merge against the last-synced base (if we have one) so a pull never discards
+  // local handicap/score edits we haven't pushed yet — same 3-way merge as pushRemote.
+  const merged = lastSyncedSnapshot ? mergeStates(lastSyncedSnapshot, state, remote) : remote;
+  replaceLocalState(merged);
+  lastSyncedSnapshot = snapshotState(state);
 }
 
 function startPolling() {
@@ -2632,7 +2726,7 @@ async function pushLocalToRemote() {
   if (!isSyncConfigured()) { alert("Configure sync credentials first."); return; }
   if (!confirm("This will overwrite the shared data with what's on this device. Continue?")) return;
   state._updatedAt = Date.now();
-  await pushRemote();
+  await pushRemote(true);
 }
 
 // Wrap saveState so any local change schedules a remote push
