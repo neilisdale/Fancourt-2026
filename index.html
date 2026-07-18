@@ -2406,6 +2406,14 @@ let suppressPollUntil = 0;
 // side since that point — this is what stops handicaps/scores from reverting to
 // zero when two devices sync around the same time.
 let lastSyncedSnapshot = null;
+// Resolves once bootSync's initial pull (and merge-baseline setup) has completed.
+// schedulePush awaits this so a user typing in the first instant after page load
+// can't slip a push through with no merge baseline. A hard timeout backstops it in
+// case the initial fetch never resolves (offline, etc.) — pushRemote's own
+// fetch-before-push check is the real safety net in that case, not this timer.
+let syncReadyResolve = null;
+let syncReady = new Promise(res => { syncReadyResolve = res; });
+setTimeout(() => { if (syncReadyResolve) syncReadyResolve(); }, 8000);
 
 function saveSyncCfg() {
   try { localStorage.setItem(SYNC_CONFIG_KEY, JSON.stringify(syncCfg)); } catch (e) {}
@@ -2485,7 +2493,9 @@ function mergeScoresField(base, local, remote, playerCount) {
 // info, schedule, etc.) changes far less often and isn't edited concurrently in
 // practice, so we just take it from whichever full state is more recent.
 function mergeStates(base, local, remote) {
-  const playerCount = (local && local.players && local.players.length) || MAX_PLAYERS;
+  const localCount = (local && local.players && local.players.length) || 0;
+  const remoteCount = (remote && remote.players && remote.players.length) || 0;
+  const playerCount = Math.max(localCount, remoteCount, MAX_PLAYERS);
   const localNewer = (local._updatedAt || 0) >= (remote._updatedAt || 0);
   const merged = Object.assign({}, localNewer ? local : remote);
   merged.handicapsByCourse = mergeCourseArrayField(base && base.handicapsByCourse, local.handicapsByCourse, remote.handicapsByCourse, playerCount);
@@ -2530,37 +2540,64 @@ function replaceLocalState(newState) {
   }
 }
 
-async function fetchRemote() {
-  if (!isSyncConfigured()) return null;
+// Returns { ok, record, notFound }. ok=false means we could NOT confirm the bin's
+// contents (network error, timeout, 5xx, etc.) — callers must treat that as "unknown"
+// and refuse to push, not as "bin is empty". notFound=true means the bin genuinely
+// doesn't exist yet (safe to initialize). This split exists because conflating
+// "empty" with "couldn't check" was letting transient network hiccups trigger the
+// same blind-overwrite behavior as a genuinely missing bin.
+async function fetchRemoteResult() {
+  if (!isSyncConfigured()) return { ok: false, record: null, notFound: false };
   try {
     const res = await fetch("https://api.jsonbin.io/v3/b/" + encodeURIComponent(syncCfg.binId) + "/latest", {
       headers: { "X-Master-Key": syncCfg.masterKey }
     });
-    if (!res.ok) { setSyncStatus("err"); return null; }
+    if (res.status === 404) return { ok: true, record: null, notFound: true };
+    if (!res.ok) { setSyncStatus("err"); return { ok: false, record: null, notFound: false }; }
     const data = await res.json();
-    return data && data.record;
+    return { ok: true, record: data && data.record, notFound: false };
   } catch (e) {
     setSyncStatus("err");
-    return null;
+    return { ok: false, record: null, notFound: false };
   }
+}
+
+// Back-compat convenience wrapper for call sites that only need the record (or null).
+async function fetchRemote() {
+  const r = await fetchRemoteResult();
+  return r.ok ? r.record : null;
 }
 
 async function pushRemote(forceOverwrite) {
   if (!isSyncConfigured()) return;
   setSyncStatus("pending");
   try {
-    // Pull-merge-push: reconcile with whatever's currently in the bin before we
-    // overwrite it. Without this, pushing our full local state stomps any
-    // handicap/score cells that changed on another device since our last sync,
-    // even if we never touched those cells ourselves.
-    if (!forceOverwrite && lastSyncedSnapshot) {
-      const remote = await fetchRemote();
-      if (remote && isRemoteCompatible(remote)) {
-        const merged = mergeStates(lastSyncedSnapshot, state, remote);
+    if (!forceOverwrite) {
+      // Pull-merge-push: reconcile with whatever's currently in the bin before we
+      // overwrite it. Without this, pushing our full local state stomps any
+      // handicap/score cells that changed on another device since our last sync,
+      // even if we never touched those cells ourselves.
+      const r = await fetchRemoteResult();
+      if (!r.ok) {
+        // Couldn't confirm the bin's current contents — do NOT push blind, that's
+        // exactly how data gets clobbered (e.g. a flaky connection making a healthy
+        // bin look "empty"). Bail out; the next edit or poll will retry.
+        setSyncStatus("err");
+        return;
+      }
+      if (r.record && isRemoteCompatible(r.record)) {
+        // If we don't have a proper synced baseline yet (very first sync on this
+        // device), use the remote record itself as the base. It's an imperfect
+        // stand-in — it can't distinguish "I just edited this" from "remote has
+        // something new" — but it's vastly safer than skipping the merge outright.
+        const base = lastSyncedSnapshot || r.record;
+        const merged = mergeStates(base, state, r.record);
         if (JSON.stringify(merged) !== JSON.stringify(state)) {
           replaceLocalState(merged);
         }
       }
+      // r.notFound (bin genuinely never created) or an incompatible schema: nothing
+      // to merge against, fall through and push local as the authoritative copy.
     }
     state._updatedAt = Date.now();
     const res = await fetch("https://api.jsonbin.io/v3/b/" + encodeURIComponent(syncCfg.binId), {
@@ -2581,7 +2618,11 @@ async function pushRemote(forceOverwrite) {
 function schedulePush() {
   if (!isSyncConfigured()) return;
   if (pushTimer) clearTimeout(pushTimer);
-  pushTimer = setTimeout(() => { pushTimer = null; pushRemote(); }, 1500);
+  pushTimer = setTimeout(async () => {
+    pushTimer = null;
+    await syncReady; // ensure we've established a merge baseline before pushing
+    pushRemote();
+  }, 1500);
 }
 
 async function pollOnce() {
@@ -2599,6 +2640,10 @@ async function pollOnce() {
   if (rT > (state._updatedAt || 0) && rT > lastAppliedRemoteTs) {
     applyRemoteState(remote);
     lastAppliedRemoteTs = rT;
+  } else {
+    // Local is at least as current as the bin — still refresh our merge baseline
+    // to the bin's confirmed contents so a subsequent push merges correctly.
+    lastSyncedSnapshot = snapshotState(remote);
   }
 }
 
@@ -2703,11 +2748,18 @@ async function connectSync() {
   syncCfg = { binId: binId, masterKey: masterKey };
   saveSyncCfg();
   setSyncStatus("pending");
-  const remote = await fetchRemote();
-  if (remote && remote.players && (remote._updatedAt || 0) > (state._updatedAt || 0)) {
-    applyRemoteState(remote);
-    lastAppliedRemoteTs = remote._updatedAt || 0;
+  const r = await fetchRemoteResult();
+  if (!r.ok) {
+    setSyncStatus("err");
+    alert("Couldn't reach that bin to confirm its contents, so nothing was pushed. Check the Bin ID/Master Key and your connection, then try again.");
+    return;
+  }
+  if (r.record && r.record.players && isRemoteCompatible(r.record) && (r.record._updatedAt || 0) > (state._updatedAt || 0)) {
+    lastSyncedSnapshot = snapshotState(r.record);
+    applyRemoteState(r.record);
+    lastAppliedRemoteTs = r.record._updatedAt || 0;
   } else {
+    if (r.record) lastSyncedSnapshot = snapshotState(r.record);
     await pushRemote();
   }
   startPolling();
@@ -2739,37 +2791,91 @@ saveState = function() {
 
 // Initialise sync after the initial render.
 function bootSync() {
-  if (isSyncConfigured()) {
-    setSyncStatus("pending");
-    if (stateWasJustReset) {
-      // Local was just initialised from defaults (schema bump or first load).
-      // Force-push to overwrite any stale/wrong data in the shared bin.
-      setSyncStatus("pending", "Applying default lineup to bin");
-      pushRemote().then(startPolling);
-      return;
-    }
-    fetchRemote().then(remote => {
-      if (!remote || !remote.players) {
-        pushRemote().then(startPolling);
+  if (!isSyncConfigured()) {
+    setSyncStatus("off");
+    syncReadyResolve();
+    return;
+  }
+  setSyncStatus("pending");
+
+  if (stateWasJustReset) {
+    // Local storage was just (re)initialised from defaults — this happens on any
+    // brand-new device, a fresh/incognito browser, or a cleared cache. Since sync
+    // credentials are baked into the app, this branch fires automatically the
+    // first time anyone opens the app anywhere. It must NEVER blind-push these
+    // defaults over the bin — that would wipe real shared data every time someone
+    // opens the app on a new device or clears their browser data (this was almost
+    // certainly the actual cause of the wipe you saw). Pull first; only push our
+    // fresh defaults if the bin turns out to be genuinely empty or incompatible.
+    setSyncStatus("pending", "Checking shared data...");
+    fetchRemoteResult().then(r => {
+      if (!r.ok) {
+        // Couldn't confirm the bin's contents — do not push. Retry via polling.
+        setSyncStatus("err");
+        startPolling();
+        syncReadyResolve();
         return;
       }
-      if (!isRemoteCompatible(remote)) {
-        setSyncStatus("pending", "Bin has stale data — overwriting");
-        pushRemote().then(startPolling);
-        return;
-      }
-      const rT = remote._updatedAt || 0;
-      if (rT > (state._updatedAt || 0)) {
-        applyRemoteState(remote);
-        lastAppliedRemoteTs = rT;
+      if (r.record && r.record.players && isRemoteCompatible(r.record)) {
+        // Wholesale pull: this is the very first thing that runs this session, so
+        // there's no merge baseline yet (lastSyncedSnapshot is still null) — that's
+        // correct here. applyRemoteState will take remote as-is (nothing to
+        // protect on our side, since local is just fresh/default data) and will
+        // establish the baseline afterward for the rest of the session.
+        applyRemoteState(r.record);
+        lastAppliedRemoteTs = r.record._updatedAt || 0;
       } else {
-        setSyncStatus("on");
+        setSyncStatus("pending", "Applying default lineup to bin");
+        pushRemote();
       }
       startPolling();
+      syncReadyResolve();
     });
-  } else {
-    setSyncStatus("off");
+    return;
   }
+
+  fetchRemoteResult().then(r => {
+    if (!r.ok) {
+      // Network/API error — do not push local over an unconfirmed bin state.
+      setSyncStatus("err");
+      startPolling();
+      syncReadyResolve();
+      return;
+    }
+    const remote = r.record;
+    if (!remote || !remote.players) {
+      // Bin genuinely has nothing in it yet — safe to seed it.
+      pushRemote().then(startPolling);
+      syncReadyResolve();
+      return;
+    }
+    if (!isRemoteCompatible(remote)) {
+      setSyncStatus("pending", "Bin has stale data — overwriting");
+      pushRemote().then(startPolling);
+      syncReadyResolve();
+      return;
+    }
+    const rT = remote._updatedAt || 0;
+    if (rT > (state._updatedAt || 0)) {
+      // Wholesale pull (same reasoning as above): no merge baseline exists yet this
+      // session, so take remote as-is rather than diffing stale local against it.
+      applyRemoteState(remote);
+      lastAppliedRemoteTs = rT;
+    } else if ((state._updatedAt || 0) > rT) {
+      // We have local edits the bin hasn't seen yet (e.g. the app was closed
+      // before the debounced push fired) — push them now instead of leaving
+      // them stranded on this device only. pushRemote's own merge logic protects
+      // against clobbering anything, using remote as a merge base since we don't
+      // have a proper snapshot yet either.
+      pushRemote();
+    } else {
+      // Timestamps match — local and remote already agree, nothing to reconcile.
+      lastSyncedSnapshot = snapshotState(remote);
+      setSyncStatus("on");
+    }
+    startPolling();
+    syncReadyResolve();
+  });
 }
 
 // ---------- Match play + leaderboards ----------
