@@ -1471,6 +1471,48 @@ function validateMatchSchedule() {
   });
 }
 
+// Reshape the match schedule to fit current player count + round count.
+// Trims/extends days to match roundCount, and trims match slots per day so
+// each match's 4 players actually exist.
+function conformScheduleToCounts() {
+  if (!Array.isArray(state.matchSchedule)) state.matchSchedule = cloneSchedule(DEFAULT_MATCH_SCHEDULE);
+  const rc = Math.max(MIN_ROUNDS, Math.min(MAX_ROUNDS, state.roundCount || DEFAULT_ROUNDS));
+
+  // Ensure exactly rc days exist (add copies of last day if extending)
+  while (state.matchSchedule.length < rc) {
+    const template = state.matchSchedule[state.matchSchedule.length - 1] || DEFAULT_MATCH_SCHEDULE[0];
+    state.matchSchedule.push({
+      day: state.matchSchedule.length + 1,
+      roundIdx: state.matchSchedule.length,
+      matches: cloneSchedule(template.matches || [])
+    });
+  }
+  if (state.matchSchedule.length > rc) state.matchSchedule.length = rc;
+
+  // Normalise day + roundIdx (they should always match array position)
+  state.matchSchedule.forEach((d, i) => { d.day = i + 1; d.roundIdx = i; });
+
+  // Trim per-day matches to what the current player split can support
+  const total = state.players.length;
+  const half = Math.ceil(total / 2);
+  const aCount = half;
+  const bCount = total - half;
+  const maxMatches = Math.max(0, Math.min(Math.floor(aCount / 2), Math.floor(bCount / 2)));
+  state.matchSchedule.forEach(day => {
+    if (!Array.isArray(day.matches)) day.matches = [];
+    if (day.matches.length > maxMatches) day.matches.length = maxMatches;
+    // Provide at least one match slot if the player count allows
+    if (day.matches.length === 0 && aCount >= 2 && bCount >= 2) {
+      day.matches.push({
+        teamA: [0, 1],
+        teamB: [half, half + 1]
+      });
+    }
+  });
+
+  validateMatchSchedule();
+}
+
 const STORAGE_KEY = "fancourt_trophy_state_v2";
 const STATE_VERSION = 2;  // Bump to invalidate all local + remote state after schema change
 const COURSES = [
@@ -1601,6 +1643,8 @@ if (!state || !Array.isArray(state.players) || state.players.length < MIN_PLAYER
 if (!Array.isArray(state.matchSchedule)) {
   state.matchSchedule = cloneSchedule(DEFAULT_MATCH_SCHEDULE);
 }
+// Reshape schedule to fit current player+round counts (in case they differ from when saved)
+conformScheduleToCounts();
 // Backfill / repair handicaps. Migrate old single-array shape to per-course.
 if (Array.isArray(state.handicaps) && !state.handicapsByCourse) {
   state.handicapsByCourse = { links: state.handicaps.slice(), bay: state.handicaps.slice() };
@@ -1939,20 +1983,21 @@ function setPlayerCount(newCount) {
     }
   }
 
-  // Player set changed — invalidate any prior draws and clamp schedule indices.
+  // Player set changed — invalidate any prior draws and reshape schedule.
   state.pairs = null;
   state.oddsEvens = null;
   state.revealed = false;
-  validateMatchSchedule();
+  conformScheduleToCounts();
   saveState();
 
   renderPlayers();
   renderScorecards();
-  document.getElementById("pairs-display").innerHTML = "";
-  document.getElementById("oe-display").innerHTML = "";
-  document.getElementById("results-display").innerHTML = "";
-  document.getElementById("btn-oe").disabled = true;
-  document.getElementById("btn-reveal").disabled = true;
+  refreshLeaderboards();
+  const pd = document.getElementById("pairs-display"); if (pd) pd.innerHTML = "";
+  const od = document.getElementById("oe-display"); if (od) od.innerHTML = "";
+  const rd = document.getElementById("results-display"); if (rd) rd.innerHTML = "";
+  const btnOe = document.getElementById("btn-oe"); if (btnOe) btnOe.disabled = true;
+  const btnReveal = document.getElementById("btn-reveal"); if (btnReveal) btnReveal.disabled = true;
   setStatus("status-pairs", "Not drawn", false);
   setStatus("status-oe", "Not drawn", false);
 }
@@ -2779,7 +2824,7 @@ function applyRemoteState(remote) {
   if (!Array.isArray(state.matchSchedule)) {
     state.matchSchedule = cloneSchedule(DEFAULT_MATCH_SCHEDULE);
   }
-  validateMatchSchedule();
+  conformScheduleToCounts();
   if (!state.handicapsByCourse) state.handicapsByCourse = makeHandicapsByCourse(state.players.length);
   COURSES.forEach(c => {
     if (!Array.isArray(state.handicapsByCourse[c.id])) state.handicapsByCourse[c.id] = Array(state.players.length).fill(0);
@@ -3270,12 +3315,15 @@ function setRoundCount(newCount) {
   newCount = Math.max(MIN_ROUNDS, Math.min(MAX_ROUNDS, Math.floor(Number(newCount) || 0)));
   if (newCount === state.roundCount) return;
   state.roundCount = newCount;
-  // Round count changed — invalidate draws since they depend on the active set
   state.pairs = null;
   state.oddsEvens = null;
   state.revealed = false;
+  conformScheduleToCounts();
   saveState();
   applyRoundCountVisibility();
+  renderScorecards();
+  renderRoundChips && renderRoundChips();
+  refreshLeaderboards();
   refreshAllStablefordDisplays();
   const pd = document.getElementById("pairs-display"); if (pd) pd.innerHTML = "";
   const od = document.getElementById("oe-display"); if (od) od.innerHTML = "";
