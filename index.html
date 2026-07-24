@@ -1492,24 +1492,43 @@ function conformScheduleToCounts() {
   // Normalise day + roundIdx (they should always match array position)
   state.matchSchedule.forEach((d, i) => { d.day = i + 1; d.roundIdx = i; });
 
-  // Trim per-day matches to what the current player split can support
+  // Compute the desired match shape per day given the current player counts:
+  //   as many 4-ball matches as possible, then one 2-ball match if there is a leftover on BOTH teams
   const total = state.players.length;
   const half = Math.ceil(total / 2);
   const aCount = half;
   const bCount = total - half;
-  const maxMatches = Math.max(0, Math.min(Math.floor(aCount / 2), Math.floor(bCount / 2)));
+  const fourBalls = Math.min(Math.floor(aCount / 2), Math.floor(bCount / 2));
+  const aLeft = aCount - fourBalls * 2;
+  const bLeft = bCount - fourBalls * 2;
+  const desiredShape = [];
+  for (let i = 0; i < fourBalls; i++) desiredShape.push([2, 2]);
+  if (aLeft >= 1 && bLeft >= 1) desiredShape.push([1, 1]);
+
+  function _currentDayShape(day) {
+    return (day.matches || []).map(m => [(m.teamA || []).length, (m.teamB || []).length]);
+  }
+  function _shapesMatch(a, b) {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) {
+      if (a[i][0] !== b[i][0] || a[i][1] !== b[i][1]) return false;
+    }
+    return true;
+  }
+
   state.matchSchedule.forEach(day => {
     if (!Array.isArray(day.matches)) day.matches = [];
-    // Trim if we now have more matches than the player count allows
-    if (day.matches.length > maxMatches) day.matches.length = maxMatches;
-    // Add matches up to maxMatches, pairing the next unused A/B players in order
-    while (day.matches.length < maxMatches) {
-      const mi = day.matches.length;
-      day.matches.push({
-        teamA: [mi * 2, mi * 2 + 1],
-        teamB: [half + mi * 2, half + mi * 2 + 1]
-      });
-    }
+    if (_shapesMatch(_currentDayShape(day), desiredShape)) return;  // keep custom pairings when shape unchanged
+    // Otherwise rebuild this day's matches from the next unused A/B players in order
+    day.matches = [];
+    let aPtr = 0, bPtr = 0;
+    desiredShape.forEach(function(sz) {
+      const aSize = sz[0], bSize = sz[1];
+      const matchA = [], matchB = [];
+      for (let i = 0; i < aSize; i++) matchA.push(aPtr++);
+      for (let i = 0; i < bSize; i++) matchB.push(half + bPtr++);
+      day.matches.push({ teamA: matchA, teamB: matchB });
+    });
   });
 
   validateMatchSchedule();
@@ -3197,45 +3216,46 @@ function renderMatchSchedule() {
       const teamsDiv = document.createElement("div");
       teamsDiv.className = "match-teams";
 
+      // Team A line
       const aLine = document.createElement("div");
       aLine.className = "match-team-line";
       const aTag = document.createElement("span");
       aTag.className = "team-a-tag";
       aTag.textContent = "A";
       aLine.appendChild(aTag);
-      const selA1 = makeMatchSelect(dayIdx, mi, "A", 0, m.teamA[0]);
-      selA1.id = "match-sel-" + dayIdx + "-" + mi + "-A-0";
-      aLine.appendChild(selA1);
-      const amp1 = document.createElement("span");
-      amp1.className = "amp";
-      amp1.textContent = "&";
-      aLine.appendChild(amp1);
-      const selA2 = makeMatchSelect(dayIdx, mi, "A", 1, m.teamA[1]);
-      selA2.id = "match-sel-" + dayIdx + "-" + mi + "-A-1";
-      aLine.appendChild(selA2);
+      (m.teamA || []).forEach(function(pi, slot) {
+        if (slot > 0) {
+          const amp = document.createElement("span");
+          amp.className = "amp"; amp.textContent = "&";
+          aLine.appendChild(amp);
+        }
+        const sel = makeMatchSelect(dayIdx, mi, "A", slot, pi);
+        sel.id = "match-sel-" + dayIdx + "-" + mi + "-A-" + slot;
+        aLine.appendChild(sel);
+      });
       teamsDiv.appendChild(aLine);
 
       const vs = document.createElement("div");
-      vs.className = "vs";
-      vs.textContent = "vs";
+      vs.className = "vs"; vs.textContent = "vs";
       teamsDiv.appendChild(vs);
 
+      // Team B line
       const bLine = document.createElement("div");
       bLine.className = "match-team-line";
       const bTag = document.createElement("span");
       bTag.className = "team-b-tag";
       bTag.textContent = "B";
       bLine.appendChild(bTag);
-      const selB1 = makeMatchSelect(dayIdx, mi, "B", 0, m.teamB[0]);
-      selB1.id = "match-sel-" + dayIdx + "-" + mi + "-B-0";
-      bLine.appendChild(selB1);
-      const amp2 = document.createElement("span");
-      amp2.className = "amp";
-      amp2.textContent = "&";
-      bLine.appendChild(amp2);
-      const selB2 = makeMatchSelect(dayIdx, mi, "B", 1, m.teamB[1]);
-      selB2.id = "match-sel-" + dayIdx + "-" + mi + "-B-1";
-      bLine.appendChild(selB2);
+      (m.teamB || []).forEach(function(pi, slot) {
+        if (slot > 0) {
+          const amp = document.createElement("span");
+          amp.className = "amp"; amp.textContent = "&";
+          bLine.appendChild(amp);
+        }
+        const sel = makeMatchSelect(dayIdx, mi, "B", slot, pi);
+        sel.id = "match-sel-" + dayIdx + "-" + mi + "-B-" + slot;
+        bLine.appendChild(sel);
+      });
       teamsDiv.appendChild(bLine);
 
       // Status
