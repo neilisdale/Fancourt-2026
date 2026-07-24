@@ -808,6 +808,51 @@
   .sync-settings input::placeholder { color: #94a3b8; }
   .sync-settings .sync-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
+  /* Version history panel */
+  #history-list {
+    max-height: 320px;
+    overflow-y: auto;
+    background: rgba(0,0,0,0.15);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px;
+    margin-top: 6px;
+  }
+  .history-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    color: white;
+    font-size: 12px;
+  }
+  .history-row:last-child { border-bottom: 0; }
+  .history-meta { flex: 1; min-width: 0; }
+  .history-when { font-weight: 600; }
+  .history-rel { color: #94a3b8; font-weight: 400; font-size: 11px; }
+  .history-label { color: #c8d3e0; font-size: 11px; margin-top: 2px; }
+  .history-restore-btn {
+    background: var(--gold);
+    color: var(--navy-dark);
+    border: none;
+    padding: 5px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    flex-shrink: 0;
+  }
+  .history-restore-btn:hover { background: var(--gold-dark); color: white; }
+  .history-empty {
+    padding: 16px;
+    text-align: center;
+    color: #94a3b8;
+    font-style: italic;
+    font-size: 12px;
+  }
+
 
   /* ============ Fancourt Trophy CSS ============ */
   .header-title {
@@ -1207,7 +1252,11 @@
   <!-- STEP 1: Players + Handicaps -->
   <section class="step" data-tab="setup">
     <h2><span class="step-num">1</span> Players &amp; Teams</h2>
-    <input type="hidden" id="player-count-input" value="8">
+    <div class="count-controls">
+      <label for="player-count-input">Number of players:</label>
+      <input type="number" id="player-count-input" min="2" max="16" value="8">
+      <span class="hint">2&ndash;16. Team A = first half of players, Team B = second half. Add or remove players and match dropdowns will update automatically.</span>
+    </div>
     <div class="players-grid" id="players-list"></div>
     <div class="help-text">Team A (first 4) plays Team B (last 4). Names are editable — the pairing schedule uses each player's <em>slot</em>, so if you rename a slot the schedule follows the new name automatically. Handicaps are set per course in Step 3.</div>
   </section>
@@ -1222,7 +1271,11 @@
   <!-- STEP 3: Course Setup -->
   <section class="step" data-tab="setup">
     <h2><span class="step-num">3</span> Course setup &mdash; par &amp; stroke index</h2>
-    <input type="hidden" id="round-count-input" value="3">
+    <div class="count-controls">
+      <label for="round-count-input">Number of rounds:</label>
+      <input type="number" id="round-count-input" min="1" max="4" value="3">
+      <span class="hint">1&ndash;4 rounds. Each round is 18 holes. Stableford totals sum across all active rounds.</span>
+    </div>
     <div class="info-box">
       Round 1 = Fancourt Montagu, Round 2 = Fancourt Outeniqua, Round 3 = Fancourt The Links.
       Edit par or stroke index if your printed scorecard differs.
@@ -1324,6 +1377,18 @@
           <button onclick="resetAll()" type="button">Reset everything (names, handicaps, scores &amp; draws)</button>
           <button onclick="resetMatchSchedule()" type="button">Reset match schedule to defaults</button>
           <button onclick="toggleSyncSettings()" type="button">Sync settings</button>
+          <button onclick="toggleHistoryPanel()" type="button">Version history</button>
+        </div>
+        <div class="sync-settings hidden" id="history-panel">
+          <p class="sync-help">
+            Local snapshots on this device. Snapshots capture: initial load, before every sync pull, before clear/reset actions, and periodically as you enter scores (once per minute max).
+            Restoring only affects <em>this device</em>; to share it, use Sync settings → Push local data now.
+          </p>
+          <div id="history-list"></div>
+          <div class="sync-actions" style="margin-top:10px;">
+            <button onclick="renderHistoryPanel()" type="button">Refresh list</button>
+            <button onclick="clearHistory()" type="button">Delete all local history</button>
+          </div>
         </div>
         <div class="sync-settings hidden" id="sync-settings">
           <p class="sync-help">
@@ -1357,12 +1422,27 @@ const DEFAULT_PLAYERS = [
   "Neil Isdale",        // 6 - Team B
   "Jamie Scott"         // 7 - Team B
 ];
-const MIN_PLAYERS = 8;
-const MAX_PLAYERS = 8;
-const TEAM_A_INDICES = [0, 1, 2, 3];
-const TEAM_B_INDICES = [4, 5, 6, 7];
+const MIN_PLAYERS = 2;
+const MAX_PLAYERS = 16;
 const TEAM_NAMES = { A: "Team A", B: "Team B" };
-function teamOfPlayer(pi) { return TEAM_A_INDICES.indexOf(pi) >= 0 ? "A" : "B"; }
+// Teams split the player list in half: first half A, second half B.
+function teamHalfPoint() {
+  return Math.ceil((state && state.players ? state.players.length : DEFAULT_PLAYERS.length) / 2);
+}
+function teamAIndices() {
+  const half = teamHalfPoint();
+  const arr = [];
+  for (let i = 0; i < half; i++) arr.push(i);
+  return arr;
+}
+function teamBIndices() {
+  const half = teamHalfPoint();
+  const total = (state && state.players ? state.players.length : DEFAULT_PLAYERS.length);
+  const arr = [];
+  for (let i = half; i < total; i++) arr.push(i);
+  return arr;
+}
+function teamOfPlayer(pi) { return pi < teamHalfPoint() ? "A" : "B"; }
 const DEFAULT_MATCH_SCHEDULE = [
   { day: 1, roundIdx: 0, matches: [
     { teamA: [0, 1], teamB: [4, 5] },
@@ -1379,6 +1459,18 @@ const DEFAULT_MATCH_SCHEDULE = [
 ];
 function cloneSchedule(sched) { return JSON.parse(JSON.stringify(sched)); }
 
+function validateMatchSchedule() {
+  if (!Array.isArray(state.matchSchedule) || !Array.isArray(state.players)) return;
+  const maxIdx = state.players.length - 1;
+  if (maxIdx < 0) return;
+  state.matchSchedule.forEach(day => {
+    (day.matches || []).forEach(m => {
+      m.teamA = (m.teamA || []).map(pi => Math.max(0, Math.min(pi, maxIdx)));
+      m.teamB = (m.teamB || []).map(pi => Math.max(0, Math.min(pi, maxIdx)));
+    });
+  });
+}
+
 const STORAGE_KEY = "fancourt_trophy_state_v2";
 const STATE_VERSION = 2;  // Bump to invalidate all local + remote state after schema change
 const COURSES = [
@@ -1388,8 +1480,8 @@ const COURSES = [
   { id: "round4", name: "Round 4" }
 ];
 const HOLES = 18;
-const MIN_ROUNDS = 3;
-const MAX_ROUNDS = 3;
+const MIN_ROUNDS = 1;
+const MAX_ROUNDS = 4;
 const DEFAULT_ROUNDS = 3;
 function getActiveCourses() {
   const n = Math.max(MIN_ROUNDS, Math.min(MAX_ROUNDS, Number(state && state.roundCount) || DEFAULT_ROUNDS));
@@ -1501,7 +1593,7 @@ function freshState() {
 }
 
 let stateWasJustReset = false;
-if (!state || !Array.isArray(state.players) || state.players.length !== MAX_PLAYERS || state.schemaVersion !== STATE_VERSION) {
+if (!state || !Array.isArray(state.players) || state.players.length < MIN_PLAYERS || state.players.length > MAX_PLAYERS || state.schemaVersion !== STATE_VERSION) {
   state = freshState();
   stateWasJustReset = true;
 }
@@ -1542,6 +1634,149 @@ COURSES.forEach(c => {
 
 function saveState() {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+  scheduleAutoSnapshot();
+}
+
+// ---------- Version history (local, per-device) ----------
+const HISTORY_KEY = "fancourt_trophy_history_v1";
+const HISTORY_MAX = 40;           // max snapshots retained per device
+const AUTOSAVE_THROTTLE_MS = 60000;  // at most one autosave snapshot per minute
+let lastSnapshotUpdatedAt = 0;
+let autoSnapshotTimer = null;
+
+function loadHistory() {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    return raw ? (JSON.parse(raw) || []) : [];
+  } catch (e) { return []; }
+}
+function writeHistory(list) {
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
+  } catch (e) {
+    // Quota exceeded — halve list and retry
+    const halved = list.slice(0, Math.max(5, Math.floor(list.length / 2)));
+    try { localStorage.setItem(HISTORY_KEY, JSON.stringify(halved)); } catch (e2) {}
+  }
+}
+function snapshotState(label) {
+  if (!state || !Array.isArray(state.players)) return;
+  const list = loadHistory();
+  // Skip duplicate consecutive autosaves with the same _updatedAt
+  if (label === "autosave" && list[0] && list[0].updatedAt === (state._updatedAt || 0)) return;
+  list.unshift({
+    ts: Date.now(),
+    label: label || "manual",
+    updatedAt: state._updatedAt || 0,
+    snapshot: JSON.stringify(state)
+  });
+  if (list.length > HISTORY_MAX) list.length = HISTORY_MAX;
+  writeHistory(list);
+  lastSnapshotUpdatedAt = state._updatedAt || 0;
+  // If the history panel is open, refresh it
+  if (typeof renderHistoryPanel === "function") renderHistoryPanel();
+}
+function scheduleAutoSnapshot() {
+  if (autoSnapshotTimer) return;
+  autoSnapshotTimer = setTimeout(() => {
+    autoSnapshotTimer = null;
+    snapshotState("autosave");
+  }, AUTOSAVE_THROTTLE_MS);
+}
+
+function fmtHistoryTimestamp(ts) {
+  const d = new Date(ts);
+  return d.toLocaleString(undefined, {
+    year: "numeric", month: "short", day: "numeric",
+    hour: "2-digit", minute: "2-digit", second: "2-digit"
+  });
+}
+function fmtHistoryRelative(ts) {
+  const diff = Date.now() - ts;
+  const sec = Math.floor(diff / 1000);
+  if (sec < 60) return sec + "s ago";
+  const min = Math.floor(sec / 60);
+  if (min < 60) return min + "m ago";
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return hr + "h ago";
+  const days = Math.floor(hr / 24);
+  return days + "d ago";
+}
+
+function restoreSnapshotAt(idx) {
+  const list = loadHistory();
+  const entry = list[idx];
+  if (!entry) { alert("Snapshot no longer available."); return; }
+  const when = fmtHistoryTimestamp(entry.ts);
+  if (!confirm("Restore state from " + when + " (" + entry.label + ")?\n\nThis replaces your current data locally. To share with other devices, use Admin → Sync settings → Push local data now.")) return;
+  let restored;
+  try { restored = JSON.parse(entry.snapshot); }
+  catch (e) { alert("Snapshot is corrupt: " + e.message); return; }
+  // Snapshot the current state before restoring so it can be undone
+  snapshotState("before-restore");
+  state = restored;
+  state._updatedAt = Date.now();  // makes local win over remote if pushed
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+  // Re-render everything
+  if (typeof renderPlayers === "function") renderPlayers();
+  if (typeof renderCourseSelectors === "function") renderCourseSelectors();
+  if (typeof refreshCourseTitles === "function") refreshCourseTitles();
+  if (typeof renderCourseSetup === "function") renderCourseSetup();
+  if (typeof renderScorecards === "function") renderScorecards();
+  if (typeof refreshLeaderboards === "function") refreshLeaderboards();
+  alert("Restored. To sync the restored data to other devices, tap Admin → Sync settings → Push local data now.");
+}
+
+function clearHistory() {
+  if (!confirm("Delete all local version history on this device? Snapshots on other devices are unaffected.")) return;
+  try { localStorage.removeItem(HISTORY_KEY); } catch (e) {}
+  renderHistoryPanel();
+}
+
+function renderHistoryPanel() {
+  const list = document.getElementById("history-list");
+  if (!list) return;
+  const entries = loadHistory();
+  list.innerHTML = "";
+  if (entries.length === 0) {
+    list.innerHTML = '<div class="history-empty">No snapshots yet on this device.</div>';
+    return;
+  }
+  entries.forEach((entry, idx) => {
+    const row = document.createElement("div");
+    row.className = "history-row";
+    let parsed = null;
+    try { parsed = JSON.parse(entry.snapshot); } catch (e) {}
+    const summary = parsed ? summarizeSnapshot(parsed) : "";
+    row.innerHTML =
+      '<div class="history-meta">' +
+        '<div class="history-when">' + fmtHistoryTimestamp(entry.ts) + ' <span class="history-rel">(' + fmtHistoryRelative(entry.ts) + ')</span></div>' +
+        '<div class="history-label">' + entry.label + (summary ? ' &middot; ' + summary : '') + '</div>' +
+      '</div>' +
+      '<button class="history-restore-btn" onclick="restoreSnapshotAt(' + idx + ')" type="button">Restore</button>';
+    list.appendChild(row);
+  });
+}
+
+function summarizeSnapshot(s) {
+  try {
+    let strokesCount = 0;
+    if (s.scores) {
+      Object.keys(s.scores).forEach(k => {
+        (s.scores[k] || []).forEach(playerArr => {
+          (playerArr || []).forEach(v => { if (v !== "" && v != null && parseInt(v) > 0) strokesCount++; });
+        });
+      });
+    }
+    return strokesCount + " scores entered";
+  } catch (e) { return ""; }
+}
+
+function toggleHistoryPanel() {
+  const panel = document.getElementById("history-panel");
+  if (!panel) return;
+  panel.classList.toggle("hidden");
+  if (!panel.classList.contains("hidden")) renderHistoryPanel();
 }
 
 // Reject remote states that don't fit this app's fixed shape
@@ -1549,7 +1784,8 @@ function saveState() {
 function isRemoteCompatible(remote) {
   return !!(remote
     && Array.isArray(remote.players)
-    && remote.players.length === MAX_PLAYERS
+    && remote.players.length >= MIN_PLAYERS
+    && remote.players.length <= MAX_PLAYERS
     && remote.schemaVersion === STATE_VERSION);
 }
 
@@ -1703,10 +1939,11 @@ function setPlayerCount(newCount) {
     }
   }
 
-  // Player set changed — invalidate any prior draws.
+  // Player set changed — invalidate any prior draws and clamp schedule indices.
   state.pairs = null;
   state.oddsEvens = null;
   state.revealed = false;
+  validateMatchSchedule();
   saveState();
 
   renderPlayers();
@@ -2245,6 +2482,7 @@ function fillRandomScores() {
 
 function clearScores() {
   if (!confirm("Clear all scores?")) return;
+  snapshotState("before-clear-scores");
   COURSES.forEach(c => {
     state.scores[c.id] = state.players.map(() => Array(HOLES).fill(""));
   });
@@ -2394,7 +2632,8 @@ function resetDraws() { return;
 }
 
 function resetAll() {
-  if (!confirm("Reset everything including names, handicaps, course setup and scores? This cannot be undone.")) return;
+  if (!confirm("Reset everything including names, handicaps, course setup and scores? This cannot be undone (but a snapshot has been saved to Version history first).")) return;
+  snapshotState("before-reset-all");
   try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
   state = freshState();
   applyRoundCountVisibility();
@@ -2529,6 +2768,8 @@ function applyRemoteState(remote) {
     pushRemote();
     return;
   }
+  // Snapshot the current local state before it's replaced by the remote
+  snapshotState("before-sync-pull");
   const focused = document.activeElement;
   const focusedId = focused && focused.id ? focused.id : null;
   const focusedSelStart = focused && focused.selectionStart;
@@ -2538,6 +2779,7 @@ function applyRemoteState(remote) {
   if (!Array.isArray(state.matchSchedule)) {
     state.matchSchedule = cloneSchedule(DEFAULT_MATCH_SCHEDULE);
   }
+  validateMatchSchedule();
   if (!state.handicapsByCourse) state.handicapsByCourse = makeHandicapsByCourse(state.players.length);
   COURSES.forEach(c => {
     if (!Array.isArray(state.handicapsByCourse[c.id])) state.handicapsByCourse[c.id] = Array(state.players.length).fill(0);
@@ -2681,37 +2923,34 @@ saveState = function() {
 
 // Initialise sync after the initial render.
 function bootSync() {
-  if (isSyncConfigured()) {
-    setSyncStatus("pending");
-    if (stateWasJustReset) {
-      // Local was just initialised from defaults (schema bump or first load).
-      // Force-push to overwrite any stale/wrong data in the shared bin.
-      setSyncStatus("pending", "Applying default lineup to bin");
+  if (!isSyncConfigured()) { setSyncStatus("off"); return; }
+  setSyncStatus("pending");
+  // Always FETCH first. Never force-push before knowing what the bin holds —
+  // that would wipe scores made from another device.
+  fetchRemote().then(remote => {
+    if (!remote || !remote.players) {
+      // Bin genuinely empty — push local as the initial seed.
       pushRemote().then(startPolling);
       return;
     }
-    fetchRemote().then(remote => {
-      if (!remote || !remote.players) {
-        pushRemote().then(startPolling);
-        return;
-      }
-      if (!isRemoteCompatible(remote)) {
-        setSyncStatus("pending", "Bin has stale data — overwriting");
-        pushRemote().then(startPolling);
-        return;
-      }
-      const rT = remote._updatedAt || 0;
-      if (rT > (state._updatedAt || 0)) {
-        applyRemoteState(remote);
-        lastAppliedRemoteTs = rT;
-      } else {
-        setSyncStatus("on");
-      }
-      startPolling();
-    });
-  } else {
-    setSyncStatus("off");
-  }
+    if (!isRemoteCompatible(remote)) {
+      // Bin has state from a different app or a different schema.
+      // Safe to overwrite because we cannot use this state anyway.
+      setSyncStatus("pending", "Bin incompatible — overwriting");
+      pushRemote().then(startPolling);
+      return;
+    }
+    // Bin is compatible. Prefer remote if it's newer OR if local was just reset
+    // (fresh install / cleared cache — remote is our authoritative source).
+    const rT = remote._updatedAt || 0;
+    if (stateWasJustReset || rT > (state._updatedAt || 0)) {
+      applyRemoteState(remote);
+      lastAppliedRemoteTs = rT;
+    } else {
+      setSyncStatus("on");
+    }
+    startPolling();
+  });
 }
 
 // ---------- Match play + leaderboards ----------
@@ -2771,7 +3010,7 @@ function computeMatchStatus(match, roundIdx) {
 function makeMatchSelect(dayIdx, matchIdx, team, slot, currentPi) {
   const sel = document.createElement("select");
   sel.className = "match-select match-select-" + team.toLowerCase();
-  const indices = team === "A" ? TEAM_A_INDICES : TEAM_B_INDICES;
+  const indices = team === "A" ? teamAIndices() : teamBIndices();
   indices.forEach(pi => {
     const opt = document.createElement("option");
     opt.value = String(pi);
@@ -3205,6 +3444,7 @@ function renderHeaderScoreboard() {
 function init() {
   applyRoundCountVisibility();
   bindRoundCountInput();
+  snapshotState("initial-load");
   renderPlayers();
   renderCourseSelectors();
   refreshCourseTitles();
