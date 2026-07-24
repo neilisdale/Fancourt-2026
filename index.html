@@ -1500,12 +1500,14 @@ function conformScheduleToCounts() {
   const maxMatches = Math.max(0, Math.min(Math.floor(aCount / 2), Math.floor(bCount / 2)));
   state.matchSchedule.forEach(day => {
     if (!Array.isArray(day.matches)) day.matches = [];
+    // Trim if we now have more matches than the player count allows
     if (day.matches.length > maxMatches) day.matches.length = maxMatches;
-    // Provide at least one match slot if the player count allows
-    if (day.matches.length === 0 && aCount >= 2 && bCount >= 2) {
+    // Add matches up to maxMatches, pairing the next unused A/B players in order
+    while (day.matches.length < maxMatches) {
+      const mi = day.matches.length;
       day.matches.push({
-        teamA: [0, 1],
-        teamB: [half, half + 1]
+        teamA: [mi * 2, mi * 2 + 1],
+        teamB: [half + mi * 2, half + mi * 2 + 1]
       });
     }
   });
@@ -1938,6 +1940,18 @@ function fieldAverageStablefordOnHole(courseId, holeIdx) {
   return n ? sum / n : 0;
 }
 
+// Average stableford on a hole across non-ghost players in a specific team.
+function teamAverageStablefordOnHole(courseId, holeIdx, team) {
+  const indices = team === "A" ? teamAIndices() : teamBIndices();
+  let sum = 0, n = 0;
+  indices.forEach(pi => {
+    if (isPlayerGhost(pi)) return;
+    sum += rawPlayerHoleStableford(pi, courseId, holeIdx);
+    n++;
+  });
+  return n ? sum / n : 0;
+}
+
 function rawPlayerHoleStableford(pi, courseId, h) {
   const hcp = (state.handicapsByCourse[courseId] || [])[pi] || 0;
   const info = state.courseInfo[courseId];
@@ -1945,7 +1959,7 @@ function rawPlayerHoleStableford(pi, courseId, h) {
 }
 
 function playerHoleStableford(pi, courseId, h) {
-  if (isPlayerGhost(pi)) return fieldAverageStablefordOnHole(courseId, h);
+  if (isPlayerGhost(pi)) return teamAverageStablefordOnHole(courseId, h, teamOfPlayer(pi));
   return rawPlayerHoleStableford(pi, courseId, h);
 }
 
@@ -2536,7 +2550,7 @@ function refreshAllStablefordDisplays() {
         const el = document.getElementById("pts-" + course.id + "-" + pi + "-" + h);
         if (!el) continue;
         if (isGhost) {
-          const avg = fieldAverageStablefordOnHole(course.id, h);
+          const avg = teamAverageStablefordOnHole(course.id, h, teamOfPlayer(pi));
           el.textContent = (Math.round(avg * 10) / 10) + " pts";
           el.classList.add("has-points");
         } else {
