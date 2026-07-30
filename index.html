@@ -565,6 +565,13 @@
     appearance: none;
     cursor: pointer;
   }
+  /* Desktop dropdown items — left align so "5 · Double Bogey" reads cleanly */
+  .scorecard select.stroke-input option {
+    text-align: left;
+    text-align-last: left;
+    padding: 4px 10px;
+    font-weight: 400;
+  }
   .scorecard select.stroke-input::-ms-expand { display: none; }
   .scorecard input.stroke-input::-webkit-outer-spin-button,
   .scorecard input.stroke-input::-webkit-inner-spin-button {
@@ -2730,21 +2737,17 @@ function renderScorecards() {
         const blankOpt = document.createElement("option");
         blankOpt.value = ""; blankOpt.textContent = "—";
         inp.appendChild(blankOpt);
-        const holePar = (state.courseInfo[course.id] && state.courseInfo[course.id].par) ? parseInt(state.courseInfo[course.id].par[h]) : NaN;
+        // Options display just the number in the closed cell; labels appear only when the picker is open.
         for (let v = 1; v <= 10; v++) {
           const opt = document.createElement("option");
-          opt.value = String(v);
-          const lbl = scoreLabel(v, holePar);
-          opt.textContent = lbl ? (v + " · " + lbl) : String(v);
+          opt.value = String(v); opt.textContent = String(v);
           inp.appendChild(opt);
         }
         // If saved value is >10 (from "Other"), add it as a dedicated option so the select can display it
         const savedNum = parseInt(state.scores[course.id][pi][h]);
         if (!isNaN(savedNum) && savedNum > 10 && savedNum < 100) {
           const savedOpt = document.createElement("option");
-          savedOpt.value = String(savedNum);
-          const lblSaved = scoreLabel(savedNum, holePar);
-          savedOpt.textContent = lblSaved ? (savedNum + " · " + lblSaved) : String(savedNum);
+          savedOpt.value = String(savedNum); savedOpt.textContent = String(savedNum);
           inp.appendChild(savedOpt);
         }
         const otherOpt = document.createElement("option");
@@ -2754,8 +2757,29 @@ function renderScorecards() {
         const savedVal = state.scores[course.id][pi][h];
         const savedInt = parseInt(savedVal);
         inp.value = (!isNaN(savedInt) && savedInt >= 1 && savedInt < 100) ? String(savedInt) : "";
-        // First-tap default: on focus of an empty cell, pre-fill par so the wheel opens at par
+        // Helper: add labels for wheel-picker display, and strip them for the closed cell display
+        function _applyLabels() {
+          const holeParNow = (state.courseInfo[course.id] && state.courseInfo[course.id].par) ? parseInt(state.courseInfo[course.id].par[h]) : NaN;
+          Array.from(inp.options).forEach(function(opt) {
+            const v = opt.value;
+            if (v === "" || v === "__other__") return;
+            const n = parseInt(v);
+            if (isNaN(n)) return;
+            const lbl = scoreLabel(n, holeParNow);
+            opt.textContent = lbl ? (v + " · " + lbl) : v;
+          });
+        }
+        function _stripLabels() {
+          Array.from(inp.options).forEach(function(opt) {
+            const v = opt.value;
+            if (v === "" || v === "__other__") return;
+            opt.textContent = v;
+          });
+        }
+        // First-tap default: on focus of an empty cell, pre-fill par so the wheel opens at par;
+        // also add descriptive labels while the picker is open.
         inp.addEventListener("focus", function() {
+          _applyLabels();
           if (inp.value === "") {
             const info = state.courseInfo[course.id];
             const par = (info && info.par) ? (parseInt(info.par[h]) || 4) : 4;
@@ -2767,6 +2791,7 @@ function renderScorecards() {
             if (state.revealed) revealWinners();
           }
         });
+        inp.addEventListener("blur", function() { _stripLabels(); });
         inp.addEventListener("change", function() {
           if (inp.value === "__other__") {
             const previous = state.scores[course.id][pi][h] || "";
@@ -2785,9 +2810,7 @@ function renderScorecards() {
             }
             if (!existingOpt) {
               const newOpt = document.createElement("option");
-              newOpt.value = String(n);
-              const lblOther = scoreLabel(n, holePar);
-              newOpt.textContent = lblOther ? (n + " · " + lblOther) : String(n);
+              newOpt.value = String(n); newOpt.textContent = String(n);
               inp.insertBefore(newOpt, otherOpt);
             }
             inp.value = String(n);
@@ -2798,6 +2821,7 @@ function renderScorecards() {
           saveState();
           refreshAllStablefordDisplays();
           if (state.revealed) revealWinners();
+          _stripLabels();
         });
         td.appendChild(inp);
         const pts = document.createElement("div");
