@@ -2083,6 +2083,26 @@ function isHoleActive(courseId, holeIdx) {
   return par > 0 || si > 0;
 }
 
+// Golf score name for a given stroke count vs. par. Hole-in-One takes precedence over
+// under-par names (e.g., a 1 on a par 3 is a "Hole-in-One", not an "Eagle").
+function scoreLabel(strokes, par) {
+  if (strokes === 1) return "Hole-in-One";
+  const p = parseInt(par);
+  if (!(p > 0)) return "";
+  const diff = strokes - p;
+  if (diff === -4) return "Condor";
+  if (diff === -3) return "Albatross";
+  if (diff === -2) return "Eagle";
+  if (diff === -1) return "Birdie";
+  if (diff === 0)  return "Par";
+  if (diff === 1)  return "Bogey";
+  if (diff === 2)  return "Double Bogey";
+  if (diff === 3)  return "Triple Bogey";
+  if (diff === 4)  return "Quadruple Bogey";
+  if (diff > 4)    return "Worse";
+  return "";
+}
+
 function stablefordPoints(strokes, par, hcp, si) {
   const s = parseInt(strokes);
   if (!s || s <= 0) return 0;
@@ -2710,16 +2730,21 @@ function renderScorecards() {
         const blankOpt = document.createElement("option");
         blankOpt.value = ""; blankOpt.textContent = "—";
         inp.appendChild(blankOpt);
+        const holePar = (state.courseInfo[course.id] && state.courseInfo[course.id].par) ? parseInt(state.courseInfo[course.id].par[h]) : NaN;
         for (let v = 1; v <= 10; v++) {
           const opt = document.createElement("option");
-          opt.value = String(v); opt.textContent = String(v);
+          opt.value = String(v);
+          const lbl = scoreLabel(v, holePar);
+          opt.textContent = lbl ? (v + " · " + lbl) : String(v);
           inp.appendChild(opt);
         }
         // If saved value is >10 (from "Other"), add it as a dedicated option so the select can display it
         const savedNum = parseInt(state.scores[course.id][pi][h]);
         if (!isNaN(savedNum) && savedNum > 10 && savedNum < 100) {
           const savedOpt = document.createElement("option");
-          savedOpt.value = String(savedNum); savedOpt.textContent = String(savedNum);
+          savedOpt.value = String(savedNum);
+          const lblSaved = scoreLabel(savedNum, holePar);
+          savedOpt.textContent = lblSaved ? (savedNum + " · " + lblSaved) : String(savedNum);
           inp.appendChild(savedOpt);
         }
         const otherOpt = document.createElement("option");
@@ -2760,7 +2785,9 @@ function renderScorecards() {
             }
             if (!existingOpt) {
               const newOpt = document.createElement("option");
-              newOpt.value = String(n); newOpt.textContent = String(n);
+              newOpt.value = String(n);
+              const lblOther = scoreLabel(n, holePar);
+              newOpt.textContent = lblOther ? (n + " · " + lblOther) : String(n);
               inp.insertBefore(newOpt, otherOpt);
             }
             inp.value = String(n);
