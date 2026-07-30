@@ -388,6 +388,35 @@
   .scorecard tr.match-result-row td.mrc-b-up { background: #b91c1c; color: white; }
   .scorecard tr.match-result-row td.mrc-halved { background: #d4a017; color: #0f1929; }
 
+  /* Complete Round button */
+  .round-complete-btn {
+    display: block;
+    width: 100%;
+    padding: 12px 18px;
+    margin: 8px 0 10px;
+    background: var(--gold);
+    color: var(--navy-dark);
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    font-family: inherit;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    transition: background 0.15s;
+  }
+  .round-complete-btn:hover { background: var(--gold-dark); color: white; }
+  .round-complete-btn.locked {
+    background: #16a34a;
+    color: white;
+    text-transform: none;
+    letter-spacing: 0.2px;
+  }
+  .round-complete-btn.locked:hover { background: #15803d; }
+  .course-section.round-locked .scorecard-wrap { border: 2px solid #16a34a; }
+
   /* Match state strip (Play tab, above each round's scorecard) */
   .match-state-strip {
     display: flex;
@@ -1121,16 +1150,17 @@
 
   .app-tab-bar {
     display: flex;
+    gap: 4px;
     background: white;
-    border-bottom: 2px solid var(--gray-200);
-    margin: 8px -16px 0;   /* bleed to app-header edges */
+    padding: 6px 8px;
+    margin: 8px -16px 0;
     box-shadow: 0 2px 6px rgba(0,0,0,0.06);
   }
   .app-tab {
     flex: 1;
     background: transparent;
     border: none;
-    padding: 12px 4px 10px;
+    padding: 10px 8px;
     font-family: inherit;
     font-size: 12px;
     font-weight: 700;
@@ -1138,13 +1168,18 @@
     letter-spacing: 0.4px;
     color: var(--gray-500);
     cursor: pointer;
-    border-bottom: 3px solid transparent;
-    transition: color 0.15s, border-color 0.15s, background 0.15s;
-    min-height: 44px;  /* touch target */
+    border-radius: 999px;   /* pill */
+    transition: color 0.15s, background 0.15s, box-shadow 0.15s;
+    min-height: 44px;
   }
-  .app-tab:hover { color: var(--navy); background: var(--gray-50); }
-  .app-tab.active { color: var(--navy); border-bottom-color: var(--gold); background: var(--gray-50); }
-  .app-tab:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
+  .app-tab:hover { color: var(--navy); background: var(--gray-100); }
+  .app-tab.active {
+    color: white;
+    background: var(--navy);
+    box-shadow: 0 3px 10px rgba(21, 37, 62, 0.35);
+  }
+  .app-tab.active:hover { background: var(--navy-dark); }
+  .app-tab:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 
   /* Hide sections that don't belong to the active tab */
   .step[data-tab] { display: none; }
@@ -1324,18 +1359,22 @@
     <div class="help-text">Tap a round above to switch. Handicaps are entered next to each player name.</div>
     <div class="course-section" data-round-slot="round1">
       <h3 id="scorecard-title-round1">Round 1 &mdash; holes 1&ndash;18</h3>
+      <button class="round-complete-btn" data-round-target="round1" onclick="handleRoundCompleteClick('round1')" type="button">&#10003; Complete Round</button>
       <div class="scorecard-wrap"><table class="scorecard" id="scorecard-round1"></table></div>
     </div>
     <div class="course-section" data-round-slot="round2">
       <h3 id="scorecard-title-round2">Round 2 &mdash; holes 1&ndash;18</h3>
+      <button class="round-complete-btn" data-round-target="round2" onclick="handleRoundCompleteClick('round2')" type="button">&#10003; Complete Round</button>
       <div class="scorecard-wrap"><table class="scorecard" id="scorecard-round2"></table></div>
     </div>
     <div class="course-section hidden" data-round-slot="round3">
       <h3 id="scorecard-title-round3">Round 3 &mdash; holes 1&ndash;18</h3>
+      <button class="round-complete-btn" data-round-target="round3" onclick="handleRoundCompleteClick('round3')" type="button">&#10003; Complete Round</button>
       <div class="scorecard-wrap"><table class="scorecard" id="scorecard-round3"></table></div>
     </div>
     <div class="course-section hidden" data-round-slot="round4">
       <h3 id="scorecard-title-round4">Round 4 &mdash; holes 1&ndash;18</h3>
+      <button class="round-complete-btn" data-round-target="round4" onclick="handleRoundCompleteClick('round4')" type="button">&#10003; Complete Round</button>
       <div class="scorecard-wrap"><table class="scorecard" id="scorecard-round4"></table></div>
     </div>
   </section>
@@ -1563,6 +1602,9 @@ const COURSE_CATALOG = [
   { key: "arabella",              name: "Arabella",
     par: [4,5,4,4,3,4,3,5,4,  4,4,4,5,3,4,4,3,5],
     si:  [9,15,1,5,17,3,11,7,13,  4,6,10,14,18,2,16,12,8] },
+  { key: "bellville",             name: "Bellville",
+    par: [4,4,5,3,4,4,3,5,4,  4,4,3,4,4,5,3,5,4],
+    si:  [12,10,6,16,14,2,18,4,8,  9,1,15,5,17,7,11,3,13] },
   { key: "clovelly",              name: "Clovelly",
     par: [4,4,4,4,5,3,4,3,5,  5,3,4,4,4,5,3,4,4],
     si:  [5,11,13,3,9,15,7,17,1,  10,16,6,8,18,4,14,2,12] },
@@ -1705,6 +1747,7 @@ function freshState() {
     scores: makeEmptyScoresFor(DEFAULT_PLAYERS.length),
     roundCount: DEFAULT_ROUNDS,
     matchSchedule: cloneSchedule(DEFAULT_MATCH_SCHEDULE),
+    completedRounds: [],
     pairs: null,
     oddsEvens: null,
     revealed: false,
@@ -1721,6 +1764,7 @@ if (!state || !Array.isArray(state.players) || state.players.length < MIN_PLAYER
 if (!Array.isArray(state.matchSchedule)) {
   state.matchSchedule = cloneSchedule(DEFAULT_MATCH_SCHEDULE);
 }
+if (!Array.isArray(state.completedRounds)) state.completedRounds = [];
 // Reshape schedule to fit current player+round counts (in case they differ from when saved)
 conformScheduleToCounts();
 // Backfill / repair handicaps. Migrate old single-array shape to per-course.
@@ -2391,6 +2435,9 @@ function renderScorecards() {
   COURSES.forEach(course => {
     const table = document.getElementById("scorecard-" + course.id);
     table.innerHTML = "";
+    // Toggle locked class on the course-section (used for visual + input gating)
+    const section = document.querySelector('.course-section[data-round-slot="' + course.id + '"]');
+    if (section) section.classList.toggle("round-locked", isRoundCompleted(course.id));
     // Ensure a match-state-strip exists just above the scorecard-wrap
     ensureMatchStateStrip(course);
     const thead = document.createElement("thead");
@@ -2474,7 +2521,7 @@ function renderScorecards() {
       hcpInp.className = "hcp-input-mini";
       hcpInp.id = "hcp-" + course.id + "-" + pi;
       hcpInp.value = (state.handicapsByCourse[course.id][pi] != null) ? state.handicapsByCourse[course.id][pi] : 0;
-      hcpInp.disabled = isGhostName(name);
+      hcpInp.disabled = isGhostName(name) || isRoundCompleted(course.id);
       hcpInp.addEventListener("input", () => {
         state.handicapsByCourse[course.id][pi] = hcpInp.value === "" ? 0 : Number(hcpInp.value);
         saveState();
@@ -2486,6 +2533,7 @@ function renderScorecards() {
       nameTd.appendChild(hcpDiv);
       tr.appendChild(nameTd);
 
+      const roundLocked = isRoundCompleted(course.id);
       for (let h = 0; h < HOLES; h++) {
         const td = document.createElement("td");
         td.className = "score-cell";
@@ -2497,7 +2545,7 @@ function renderScorecards() {
         inp.inputMode = "numeric";
         inp.id = "stroke-" + course.id + "-" + pi + "-" + h;
         inp.value = state.scores[course.id][pi][h];
-        inp.disabled = isGhostName(name);
+        inp.disabled = isGhostName(name) || roundLocked;
         inp.addEventListener("input", () => {
           state.scores[course.id][pi][h] = inp.value;
           saveState();
@@ -2914,6 +2962,7 @@ function applyRemoteState(remote) {
   if (!Array.isArray(state.matchSchedule)) {
     state.matchSchedule = cloneSchedule(DEFAULT_MATCH_SCHEDULE);
   }
+  if (!Array.isArray(state.completedRounds)) state.completedRounds = [];
   conformScheduleToCounts();
   if (!state.handicapsByCourse) state.handicapsByCourse = makeHandicapsByCourse(state.players.length);
   COURSES.forEach(c => {
@@ -3138,6 +3187,15 @@ function computeMatchStatus(match, roundIdx) {
     if (lead === 0) { status = "AS thru " + holesPlayed; aPoints = 0.5; bPoints = 0.5; }
     else if (lead > 0) { status = "A " + lead + " UP thru " + holesPlayed; aPoints = 1; }
     else { status = "B " + Math.abs(lead) + " UP thru " + holesPlayed; bPoints = 1; }
+  }
+  // If this round has been formally completed, finalise the match
+  if (isRoundCompleted(courseId) && !complete) {
+    complete = true;
+    provisional = false;
+    if (holesPlayed === 0) { status = "No score (final)"; aPoints = 0; bPoints = 0; }
+    else if (lead === 0) status = "Halved thru " + holesPlayed + " (final)";
+    else if (lead > 0)   status = "A wins " + lead + " up thru " + holesPlayed + " (final)";
+    else                 status = "B wins " + Math.abs(lead) + " up thru " + holesPlayed + " (final)";
   }
   return { aWins, bWins, halved, holesPlayed, holesLeft, lead, status, complete, provisional, aPoints, bPoints };
 }
@@ -3579,6 +3637,57 @@ function renderHeaderScoreboard() {
   if (bSide) bSide.classList.toggle("leading", s.bTotal > s.aTotal);
 }
 
+// ---------- Round Completion ----------
+function isRoundCompleted(courseId) {
+  return Array.isArray(state.completedRounds) && state.completedRounds.indexOf(courseId) >= 0;
+}
+
+function promptCompleteRound(courseId) {
+  const pw = prompt("Enter admin password to lock scores and finalise this round:");
+  if (pw === null) return;
+  if (pw !== ADMIN_PASSWORD) { alert("Incorrect password."); return; }
+  const roundNum = courseId.replace("round", "");
+  const info = state.courseInfo[courseId];
+  const name = (info && info.name) || ("Round " + roundNum);
+  if (!confirm("Complete " + name + "?\n\nScores and handicaps for this round will be locked. Match statuses will be finalised based on holes played so far.")) return;
+  if (!Array.isArray(state.completedRounds)) state.completedRounds = [];
+  if (state.completedRounds.indexOf(courseId) < 0) state.completedRounds.push(courseId);
+  saveState();
+  renderScorecards();
+  refreshLeaderboards();
+  updateRoundCompleteButtons();
+}
+
+function uncompleteRound(courseId) {
+  const pw = prompt("Enter admin password to UNLOCK this round (allow score edits again):");
+  if (pw === null) return;
+  if (pw !== ADMIN_PASSWORD) { alert("Incorrect password."); return; }
+  if (!Array.isArray(state.completedRounds)) return;
+  state.completedRounds = state.completedRounds.filter(function(id) { return id !== courseId; });
+  saveState();
+  renderScorecards();
+  refreshLeaderboards();
+  updateRoundCompleteButtons();
+}
+
+function handleRoundCompleteClick(courseId) {
+  if (isRoundCompleted(courseId)) uncompleteRound(courseId);
+  else promptCompleteRound(courseId);
+}
+
+function updateRoundCompleteButtons() {
+  document.querySelectorAll(".round-complete-btn").forEach(function(btn) {
+    const courseId = btn.getAttribute("data-round-target");
+    if (isRoundCompleted(courseId)) {
+      btn.textContent = "🔒 Round locked — Tap to unlock";
+      btn.classList.add("locked");
+    } else {
+      btn.textContent = "✓ Complete Round";
+      btn.classList.remove("locked");
+    }
+  });
+}
+
 // ---------- Init ----------
 function init() {
   applyRoundCountVisibility();
@@ -3591,6 +3700,7 @@ function init() {
   renderScorecards();
   refreshLeaderboards();
   renderRoundChips();
+  updateRoundCompleteButtons();
   initCollapsibles();
   // Apply saved UI state
   switchTab(uiState.tab || "play");
