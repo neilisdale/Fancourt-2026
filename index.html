@@ -2814,8 +2814,27 @@ function renderScorecards() {
             if (state.revealed) revealWinners();
           }
         });
-        inp.addEventListener("blur", function() { _stripLabels(); });
+        inp.addEventListener("blur", function() {
+          _stripLabels();
+          // Belt-and-braces: on blur, force state to match the currently-selected value.
+          // Handles the edge case where focus pre-filled par but the user rolled to "—" and
+          // the change event didn't fire — without this, "—" would leave par saved in state.
+          if (inp.value === "__other__") return;
+          const currentVal = inp.value;
+          const savedVal = state.scores[course.id][pi][h] || "";
+          if (currentVal !== savedVal) {
+            state.scores[course.id][pi][h] = currentVal;
+            saveState();
+            refreshAllStablefordDisplays();
+            if (state.revealed) revealWinners();
+          }
+        });
         inp.addEventListener("change", function() {
+          // Immediate clear of local pts-display when value goes blank
+          if (inp.value === "") {
+            const el = document.getElementById("pts-" + course.id + "-" + pi + "-" + h);
+            if (el) { el.textContent = ""; el.classList.remove("has-points"); }
+          }
           if (inp.value === "__other__") {
             const previous = state.scores[course.id][pi][h] || "";
             const answer = prompt("Enter score (1–99):", previous || "");
