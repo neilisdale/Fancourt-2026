@@ -404,6 +404,20 @@
   .scorecard tr.match-result-row td.mrc-b-up { background: #b91c1c; color: white; }
   .scorecard tr.match-result-row td.mrc-halved { background: #d4a017; color: #0f1929; }
 
+  /* Inactive holes (blank par + blank stroke index in Course Setup) */
+  .scorecard td.hole-inactive,
+  .scorecard th.hole-inactive {
+    background: repeating-linear-gradient(45deg, #e5e7eb 0 6px, #d1d5db 6px 12px) !important;
+    color: #94a3b8 !important;
+  }
+  .scorecard td.hole-inactive input.stroke-input {
+    background: transparent;
+    color: #94a3b8;
+    cursor: not-allowed;
+  }
+  .scorecard td.hole-inactive input.stroke-input:disabled { opacity: 0.5; }
+  .scorecard td.hole-inactive .pts-display { display: none; }
+
   /* Setup Lock button (reuses styling pattern of round-complete-btn) */
   .setup-lock-btn {
     display: block;
@@ -2051,6 +2065,16 @@ function strokesReceivedOnHole(hcp, si) {
   return (si >= 19 - n) ? -1 : 0;
 }
 
+// A hole is "inactive" if BOTH par and stroke index are blank/0 in course setup.
+// Inactive holes cannot receive strokes and are skipped in match/leaderboard calculations.
+function isHoleActive(courseId, holeIdx) {
+  const info = state.courseInfo[courseId];
+  if (!info) return true;
+  const par = parseInt(info.par[holeIdx]) || 0;
+  const si  = parseInt(info.si[holeIdx])  || 0;
+  return par > 0 || si > 0;
+}
+
 function stablefordPoints(strokes, par, hcp, si) {
   const s = parseInt(strokes);
   if (!s || s <= 0) return 0;
@@ -2480,9 +2504,13 @@ function updateMatchResultRows() {
     scheduleDay.matches.forEach((m, mi) => {
       let aWins = 0, bWins = 0, holesPlayed = 0;
       for (let h = 0; h < HOLES; h++) {
+        const cell = document.getElementById("matchresult-" + course.id + "-" + mi + "-" + h);
+        if (!isHoleActive(course.id, h)) {
+          if (cell) { cell.textContent = ""; cell.className = "match-result-cell hole-inactive"; }
+          continue;
+        }
         const anyA = m.teamA.some(pi => state.scores[course.id][pi][h] !== "" && state.scores[course.id][pi][h] != null);
         const anyB = m.teamB.some(pi => state.scores[course.id][pi][h] !== "" && state.scores[course.id][pi][h] != null);
-        const cell = document.getElementById("matchresult-" + course.id + "-" + mi + "-" + h);
         let text = "", cls = "match-result-cell";
         if (anyA || anyB) {
           const aPts = bestBallStableford(m.teamA, course.id, h);
@@ -2585,7 +2613,9 @@ function renderScorecards() {
     parRow.appendChild(parLbl);
     for (let h = 0; h < HOLES; h++) {
       const th = document.createElement("th");
-      th.textContent = (info && info.par && info.par[h] != null) ? info.par[h] : "";
+      const par = info && info.par ? parseInt(info.par[h]) : NaN;
+      th.textContent = (par > 0) ? par : "";
+      if (!isHoleActive(course.id, h)) th.classList.add("hole-inactive");
       parRow.appendChild(th);
     }
     thead.appendChild(parRow);
@@ -2599,10 +2629,19 @@ function renderScorecards() {
     siRow.appendChild(siLbl);
     for (let h = 0; h < HOLES; h++) {
       const th = document.createElement("th");
-      th.textContent = (info && info.si && info.si[h] != null) ? info.si[h] : "";
+      const si = info && info.si ? parseInt(info.si[h]) : NaN;
+      th.textContent = (si > 0) ? si : "";
+      if (!isHoleActive(course.id, h)) th.classList.add("hole-inactive");
       siRow.appendChild(th);
     }
     thead.appendChild(siRow);
+    // Also grey out the hole-number header for inactive holes
+    for (let h = 0; h < HOLES; h++) {
+      if (!isHoleActive(course.id, h)) {
+        const th = holeRow.querySelectorAll("th")[h + 1];  // +1 to skip "Hole" label
+        if (th) th.classList.add("hole-inactive");
+      }
+    }
 
     table.appendChild(thead);
 
@@ -2652,6 +2691,8 @@ function renderScorecards() {
       for (let h = 0; h < HOLES; h++) {
         const td = document.createElement("td");
         td.className = "score-cell";
+        const holeActive = isHoleActive(course.id, h);
+        if (!holeActive) td.classList.add("hole-inactive");
         const inp = document.createElement("input");
         inp.className = "stroke-input";
         inp.type = "number";
@@ -2660,7 +2701,7 @@ function renderScorecards() {
         inp.inputMode = "numeric";
         inp.id = "stroke-" + course.id + "-" + pi + "-" + h;
         inp.value = state.scores[course.id][pi][h];
-        inp.disabled = isGhostName(name) || roundLocked;
+        inp.disabled = isGhostName(name) || roundLocked || !holeActive;
         inp.addEventListener("input", () => {
           state.scores[course.id][pi][h] = inp.value;
           saveState();
@@ -2739,7 +2780,10 @@ function refreshAllStablefordDisplays() {
       for (let h = 0; h < HOLES; h++) {
         const el = document.getElementById("pts-" + course.id + "-" + pi + "-" + h);
         if (!el) continue;
-        if (isGhost) {
+        if (!isHoleActive(course.id, h)) {
+          el.textContent = "";
+          el.classList.remove("has-points");
+        } else if (isGhost) {
           const avg = teamAverageStablefordOnHole(course.id, h, teamOfPlayer(pi));
           el.textContent = (Math.round(avg * 10) / 10) + " pts";
           el.classList.add("has-points");
@@ -2983,6 +3027,18 @@ function saveSyncCfg() {
   try { localStorage.setItem(SYNC_CONFIG_KEY, JSON.stringify(syncCfg)); } catch (e) {}
 }
 function isSyncConfigured() { return !!(syncCfg && syncCfg.binId && syncCfg.masterKey); }
+
+function updateStickyHeaderOffsets() {
+  const header = document.querySelector(".app-header");
+  const baseTop = header ? header.offsetHeight : 140;
+  document.documentElement.style.setProperty("--sticky-hdr-hole",  baseTop + "px");
+  const holeRowHeight = 32;
+  const parRowHeight  = 26;
+  document.documentElement.style.setProperty("--sticky-hdr-par",   (baseTop + holeRowHeight) + "px");
+  document.documentElement.style.setProperty("--sticky-hdr-stroke",(baseTop + holeRowHeight + parRowHeight) + "px");
+}
+window.addEventListener("resize", updateStickyHeaderOffsets);
+window.addEventListener("scroll", updateStickyHeaderOffsets, { passive: true });
 
 function setSyncStatus(s, msg) {
   syncStatus = s;
@@ -3274,6 +3330,7 @@ function computeMatchStatus(match, roundIdx) {
   const courseId = course.id;
   let aWins = 0, bWins = 0, halved = 0, holesPlayed = 0;
   for (let h = 0; h < HOLES; h++) {
+    if (!isHoleActive(courseId, h)) continue;   // skip disabled holes
     const anyA = match.teamA.some(pi => (state.scores[courseId][pi][h] !== "" && state.scores[courseId][pi][h] != null));
     const anyB = match.teamB.some(pi => (state.scores[courseId][pi][h] !== "" && state.scores[courseId][pi][h] != null));
     if (!anyA && !anyB) continue;
@@ -3285,7 +3342,10 @@ function computeMatchStatus(match, roundIdx) {
     else halved++;
   }
   const lead = aWins - bWins;
-  const holesLeft = HOLES - holesPlayed;
+  // Compute how many ACTIVE holes remain (skip disabled ones)
+  let activeHoles = 0;
+  for (let h = 0; h < HOLES; h++) if (isHoleActive(courseId, h)) activeHoles++;
+  const holesLeft = Math.max(0, activeHoles - holesPlayed);
   let status, complete = false, aPoints = 0, bPoints = 0;
   let provisional = false;
   if (holesPlayed === 0) {
@@ -3697,6 +3757,7 @@ function switchTab(tabName) {
   uiState.tab = tabName;
   saveUiState();
   document.body.setAttribute("data-active-tab", tabName);
+  setTimeout(updateStickyHeaderOffsets, 0);
   document.querySelectorAll(".app-tab").forEach(btn => {
     const isActive = btn.getAttribute("data-tab-target") === tabName;
     btn.classList.toggle("active", isActive);
@@ -3869,6 +3930,7 @@ function init() {
   updateRoundCompleteButtons();
   refreshSetupLock();
   initCollapsibles();
+  updateStickyHeaderOffsets();
   // Apply saved UI state
   switchTab(uiState.tab || "play");
   switchRound(uiState.activeRound || "round1");
