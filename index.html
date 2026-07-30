@@ -548,28 +548,36 @@
     .mss-teams { font-size: 11px; }
     .mss-status { font-size: 14px; }
   }
-  .scorecard input.stroke-input {
+  .scorecard input.stroke-input,
+  .scorecard select.stroke-input {
     width: 100%;
     height: 28px;
     border: none;
     background: transparent;
     text-align: center;
+    text-align-last: center;
     font-size: 14px;
     font-weight: 500;
-    padding: 0;
+    padding: 0 4px;
     font-family: inherit;
     -moz-appearance: textfield;
+    -webkit-appearance: none;
+    appearance: none;
+    cursor: pointer;
   }
+  .scorecard select.stroke-input::-ms-expand { display: none; }
   .scorecard input.stroke-input::-webkit-outer-spin-button,
   .scorecard input.stroke-input::-webkit-inner-spin-button {
     -webkit-appearance: none; margin: 0;
   }
-  .scorecard input.stroke-input:focus {
+  .scorecard input.stroke-input:focus,
+  .scorecard select.stroke-input:focus {
     background: var(--gold-light);
     outline: 2px solid var(--gold);
     outline-offset: -2px;
   }
-  .scorecard input.stroke-input:disabled {
+  .scorecard input.stroke-input:disabled,
+  .scorecard select.stroke-input:disabled {
     color: var(--gray-500);
     cursor: not-allowed;
   }
@@ -2693,16 +2701,39 @@ function renderScorecards() {
         td.className = "score-cell";
         const holeActive = isHoleActive(course.id, h);
         if (!holeActive) td.classList.add("hole-inactive");
-        const inp = document.createElement("input");
+        // Native <select> renders as a scrollable wheel picker on mobile (iOS / Android)
+        const inp = document.createElement("select");
         inp.className = "stroke-input";
-        inp.type = "number";
-        inp.min = 1;
-        inp.max = 15;
-        inp.inputMode = "numeric";
         inp.id = "stroke-" + course.id + "-" + pi + "-" + h;
-        inp.value = state.scores[course.id][pi][h];
         inp.disabled = isGhostName(name) || roundLocked || !holeActive;
-        inp.addEventListener("input", () => {
+        // Option 0 = blank ("—"); options 1..10 = stroke count
+        const blankOpt = document.createElement("option");
+        blankOpt.value = "";
+        blankOpt.textContent = "—";
+        inp.appendChild(blankOpt);
+        for (let v = 1; v <= 10; v++) {
+          const opt = document.createElement("option");
+          opt.value = String(v);
+          opt.textContent = String(v);
+          inp.appendChild(opt);
+        }
+        // Restore any existing value from state; if the saved value isn't in 1..10 it falls back to blank
+        const savedVal = state.scores[course.id][pi][h];
+        inp.value = (savedVal && parseInt(savedVal) >= 1 && parseInt(savedVal) <= 10) ? String(parseInt(savedVal)) : "";
+        // First-tap default: on focus of an empty cell, pre-fill par so the wheel opens at par
+        inp.addEventListener("focus", function() {
+          if (inp.value === "") {
+            const info = state.courseInfo[course.id];
+            const par = (info && info.par) ? (parseInt(info.par[h]) || 4) : 4;
+            const parClamped = Math.max(1, Math.min(10, par));
+            inp.value = String(parClamped);
+            state.scores[course.id][pi][h] = String(parClamped);
+            saveState();
+            refreshAllStablefordDisplays();
+            if (state.revealed) revealWinners();
+          }
+        });
+        inp.addEventListener("change", function() {
           state.scores[course.id][pi][h] = inp.value;
           saveState();
           refreshAllStablefordDisplays();
