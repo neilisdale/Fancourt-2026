@@ -2768,6 +2768,7 @@ function renderScorecards() {
     applyMatchCollapse(course.id);
   });
   refreshAllStablefordDisplays();
+  if (typeof invalidateFloatingHeaders === "function") invalidateFloatingHeaders();
 }
 
 function refreshAllStablefordDisplays() {
@@ -3028,17 +3029,117 @@ function saveSyncCfg() {
 }
 function isSyncConfigured() { return !!(syncCfg && syncCfg.binId && syncCfg.masterKey); }
 
-function updateStickyHeaderOffsets() {
-  const header = document.querySelector(".app-header");
-  const baseTop = header ? header.offsetHeight : 140;
-  document.documentElement.style.setProperty("--sticky-hdr-hole",  baseTop + "px");
-  const holeRowHeight = 32;
-  const parRowHeight  = 26;
-  document.documentElement.style.setProperty("--sticky-hdr-par",   (baseTop + holeRowHeight) + "px");
-  document.documentElement.style.setProperty("--sticky-hdr-stroke",(baseTop + holeRowHeight + parRowHeight) + "px");
+// ---------- Floating scorecard headers (JS-driven sticky) ----------
+const _floatingHeaderRegistry = {};
+let _floatingHeaderVersion = 0;
+
+function _ensureFloatingHeader(slot) {
+  let entry = _floatingHeaderRegistry[slot];
+  if (!entry) {
+    entry = { slot: slot };
+    entry.container = document.createElement("div");
+    entry.container.className = "floating-scorecard-header";
+    entry.container.style.cssText = "display:none;position:fixed;top:0;left:0;overflow:hidden;z-index:30;pointer-events:none;background:white;box-shadow:0 4px 10px rgba(0,0,0,0.15);";
+    document.body.appendChild(entry.container);
+    entry.scrollHandler = function() { _syncFloatingScroll(slot); };
+    _floatingHeaderRegistry[slot] = entry;
+  }
+  return entry;
 }
-window.addEventListener("resize", updateStickyHeaderOffsets);
-window.addEventListener("scroll", updateStickyHeaderOffsets, { passive: true });
+
+function _rebuildFloatingHeader(slot, wrap, table) {
+  const entry = _ensureFloatingHeader(slot);
+  if (entry.wrap && entry.wrap !== wrap) {
+    entry.wrap.removeEventListener("scroll", entry.scrollHandler);
+  }
+  if (entry.wrap !== wrap) {
+    wrap.addEventListener("scroll", entry.scrollHandler, { passive: true });
+    entry.wrap = wrap;
+  }
+  entry.table = table;
+  entry.container.innerHTML = "";
+  const cloneTable = table.cloneNode(true);
+  cloneTable.style.marginLeft = -wrap.scrollLeft + "px";
+  cloneTable.querySelectorAll("input, select, button, textarea").forEach(function(el) {
+    el.removeAttribute("id");
+    el.tabIndex = -1;
+    el.disabled = true;
+  });
+  entry.container.appendChild(cloneTable);
+  entry.version = _floatingHeaderVersion;
+}
+
+function _positionFloatingHeader(slot, offset) {
+  const entry = _floatingHeaderRegistry[slot];
+  if (!entry || !entry.wrap || !entry.table) return;
+  const wrapRect = entry.wrap.getBoundingClientRect();
+  const thead = entry.table.querySelector("thead");
+  const theadHeight = thead ? thead.offsetHeight : 100;
+  entry.container.style.top = offset + "px";
+  entry.container.style.left = wrapRect.left + "px";
+  entry.container.style.width = wrapRect.width + "px";
+  entry.container.style.height = theadHeight + "px";
+  entry.container.style.display = "";
+}
+
+function _hideFloatingHeader(slot) {
+  const entry = _floatingHeaderRegistry[slot];
+  if (entry) entry.container.style.display = "none";
+}
+
+function _syncFloatingScroll(slot) {
+  const entry = _floatingHeaderRegistry[slot];
+  if (entry && entry.wrap) {
+    const cloneTable = entry.container.querySelector("table");
+    if (cloneTable) cloneTable.style.marginLeft = -entry.wrap.scrollLeft + "px";
+  }
+}
+
+function invalidateFloatingHeaders() {
+  _floatingHeaderVersion++;
+  updateFloatingHeaders();
+}
+
+function updateFloatingHeaders() {
+  const activeTab = document.body.getAttribute("data-active-tab");
+  const activeRound = document.body.getAttribute("data-active-round");
+  const appHeader = document.querySelector(".app-header");
+  const stickyOffset = appHeader ? appHeader.getBoundingClientRect().bottom : 140;
+
+  document.querySelectorAll(".scorecard-wrap").forEach(function(wrap) {
+    const section = wrap.closest("[data-round-slot]");
+    const slot = section ? section.getAttribute("data-round-slot") : null;
+    if (!slot) return;
+
+    const inPlayTab = activeTab === "play" && !!wrap.closest("#tab-play-strokes");
+    const isActiveRound = slot === activeRound;
+    if (!inPlayTab || !isActiveRound) { _hideFloatingHeader(slot); return; }
+
+    const table = wrap.querySelector(".scorecard");
+    if (!table) return;
+    const thead = table.querySelector("thead");
+    if (!thead) return;
+
+    const wrapRect = wrap.getBoundingClientRect();
+    const theadHeight = thead.offsetHeight;
+
+    if (wrapRect.top < stickyOffset && wrapRect.bottom > stickyOffset + theadHeight) {
+      const entry = _floatingHeaderRegistry[slot];
+      if (!entry || entry.wrap !== wrap || entry.version !== _floatingHeaderVersion) {
+        _rebuildFloatingHeader(slot, wrap, table);
+      }
+      _positionFloatingHeader(slot, stickyOffset);
+    } else {
+      _hideFloatingHeader(slot);
+    }
+  });
+}
+
+// Keep the old name as a no-op alias so existing call sites still work
+function updateStickyHeaderOffsets() { updateFloatingHeaders(); }
+
+window.addEventListener("scroll", updateFloatingHeaders, { passive: true });
+window.addEventListener("resize", updateFloatingHeaders);
 
 function setSyncStatus(s, msg) {
   syncStatus = s;
@@ -3776,8 +3877,8 @@ function switchRound(roundId) {
     chip.classList.toggle("active", isActive);
     chip.setAttribute("aria-selected", isActive ? "true" : "false");
   });
-  // Ensure the target section isn't in collapsed state (belt-and-braces)
   document.querySelectorAll('#tab-play-strokes .course-section.collapsed').forEach(s => s.classList.remove('collapsed'));
+  if (typeof invalidateFloatingHeaders === "function") setTimeout(invalidateFloatingHeaders, 0);
 }
 
 function renderRoundChips() {
