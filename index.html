@@ -2499,7 +2499,7 @@ function applyMatchCollapse(courseId) {
 }
 
 function ensureMatchStateStrip(course) {
-  const wrap = document.querySelector('.course-section[data-round-slot="' + course.id + '"] .scorecard-wrap');
+  const wrap = document.querySelector('#tab-play-strokes .course-section[data-round-slot="' + course.id + '"] .scorecard-wrap');
   if (!wrap) return;
   const section = wrap.parentElement;
   let strip = section.querySelector(".match-state-strip");
@@ -2632,11 +2632,16 @@ function renderScoreName(nameDiv, pi) {
 }
 
 function renderScorecards() {
+  // Purge any stray match-state-strip elements outside the Play tab
+  // (e.g. previously inserted inside Setup tab's Course Setup sections).
+  document.querySelectorAll('.match-state-strip').forEach(el => {
+    if (!el.closest('#tab-play-strokes')) el.remove();
+  });
   COURSES.forEach(course => {
     const table = document.getElementById("scorecard-" + course.id);
     table.innerHTML = "";
     // Toggle locked class on the course-section (used for visual + input gating)
-    const section = document.querySelector('.course-section[data-round-slot="' + course.id + '"]');
+    const section = document.querySelector('#tab-play-strokes .course-section[data-round-slot="' + course.id + '"]');
     if (section) section.classList.toggle("round-locked", isRoundCompleted(course.id));
     // Ensure a match-state-strip exists just above the scorecard-wrap
     ensureMatchStateStrip(course);
