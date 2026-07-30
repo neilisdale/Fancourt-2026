@@ -210,16 +210,34 @@
   }
   table.scorecard, table.course-setup {
     border-collapse: collapse;
-    width: 100%;
+    width: auto;
     font-size: 13px;
+    /* Fixed layout: column widths come from the first row and never change with content */
+    table-layout: fixed;
   }
   .scorecard th, .scorecard td,
   .course-setup th, .course-setup td {
     border: 1px solid var(--gray-200);
     padding: 0;
     text-align: center;
-    min-width: 40px;
+    width: 44px;
+    min-width: 44px;
+    max-width: 44px;
     height: 32px;
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+  .scorecard th.total-cell, .scorecard td.total-cell,
+  .course-setup th.total-cell, .course-setup td.total-cell {
+    width: 72px;
+    min-width: 72px;
+    max-width: 72px;
+  }
+  .scorecard th.name-cell, .scorecard td.name-cell,
+  .course-setup th.row-label, .course-setup td.row-label {
+    width: 170px;
+    min-width: 170px;
+    max-width: 170px;
   }
   .scorecard th, .course-setup th {
     background: var(--green-light);
@@ -593,6 +611,9 @@
     color: var(--gray-500);
     line-height: 1;
     padding-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .scorecard .pts-display.has-points { color: var(--green-dark); font-weight: 600; }
   .scorecard tr.ghost-row .pts-display { color: var(--gold); font-style: italic; }
@@ -836,9 +857,11 @@
     h1 { font-size: 22px; }
     .step { padding: 16px; }
     .scorecard th, .scorecard td,
-    .course-setup th, .course-setup td { min-width: 36px; font-size: 12px; }
+    .course-setup th, .course-setup td { width: 38px; min-width: 38px; max-width: 38px; font-size: 12px; }
+    .scorecard th.total-cell, .scorecard td.total-cell,
+    .course-setup th.total-cell, .course-setup td.total-cell { width: 60px; min-width: 60px; max-width: 60px; }
     .scorecard td.name-cell, .scorecard th.name-cell,
-    .course-setup td.row-label, .course-setup th.row-label { min-width: 110px; font-size: 12px; }
+    .course-setup td.row-label, .course-setup th.row-label { width: 130px; min-width: 130px; max-width: 130px; font-size: 12px; }
     .result-row .total { font-size: 20px; }
     .result-row.winner .total { font-size: 24px; }
 
