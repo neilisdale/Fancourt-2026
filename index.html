@@ -430,11 +430,25 @@
     background: var(--gray-100);
     border-left: 4px solid var(--gray-300);
     display: grid;
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: auto 1fr auto auto;
     align-items: center;
     gap: 12px;
     font-size: 13px;
+    user-select: none;
   }
+  .mss-item.mss-clickable { cursor: pointer; }
+  .mss-item.mss-clickable:hover { filter: brightness(0.97); }
+  .mss-chevron {
+    font-size: 16px;
+    color: var(--gray-500);
+    transition: transform 0.2s;
+    padding-left: 4px;
+    line-height: 1;
+  }
+  .mss-item.mss-collapsed .mss-chevron {
+    transform: rotate(-90deg);
+  }
+  .mss-item.mss-collapsed { opacity: 0.72; }
   .mss-label {
     background: var(--navy);
     color: white;
@@ -2307,6 +2321,43 @@ function refreshParTotal(courseId) {
 }
 
 // ---------- STEP 3: Scorecards ----------
+// Per-device match collapse state (which match cards are folded in the scorecard)
+const MATCH_COLLAPSE_KEY = "fancourt_match_collapse_v1";
+let matchCollapseState = {};
+try {
+  const _raw = localStorage.getItem(MATCH_COLLAPSE_KEY);
+  if (_raw) matchCollapseState = JSON.parse(_raw) || {};
+} catch (e) {}
+
+function saveMatchCollapseState() {
+  try { localStorage.setItem(MATCH_COLLAPSE_KEY, JSON.stringify(matchCollapseState)); } catch (e) {}
+}
+function isMatchCollapsed(courseId, matchIdx) {
+  return !!matchCollapseState[courseId + "|" + matchIdx];
+}
+function toggleMatchCollapse(courseId, matchIdx) {
+  const key = courseId + "|" + matchIdx;
+  matchCollapseState[key] = !matchCollapseState[key];
+  saveMatchCollapseState();
+  applyMatchCollapse(courseId);
+}
+function applyMatchCollapse(courseId) {
+  const tbl = document.getElementById("scorecard-" + courseId);
+  if (tbl) {
+    tbl.querySelectorAll("tr[data-match-index]").forEach(function(row) {
+      const mi = row.getAttribute("data-match-index");
+      row.style.display = isMatchCollapsed(courseId, mi) ? "none" : "";
+    });
+  }
+  const strip = document.getElementById("mss-strip-" + courseId);
+  if (strip) {
+    strip.querySelectorAll(".mss-item").forEach(function(el) {
+      const mi = el.getAttribute("data-match-index");
+      el.classList.toggle("mss-collapsed", isMatchCollapsed(courseId, mi));
+    });
+  }
+}
+
 function ensureMatchStateStrip(course) {
   const wrap = document.querySelector('.course-section[data-round-slot="' + course.id + '"] .scorecard-wrap');
   if (!wrap) return;
@@ -2329,14 +2380,17 @@ function populateMatchStateStrip(course, strip) {
   schedule.matches.forEach((m, mi) => {
     const status = computeMatchStatus(m, schedule.roundIdx);
     const item = document.createElement("div");
-    let cls = "mss-item";
+    let cls = "mss-item mss-clickable";
     if (status && status.holesPlayed > 0) {
       if (status.aPoints > status.bPoints) cls += " mss-a-up";
       else if (status.bPoints > status.aPoints) cls += " mss-b-up";
       else cls += " mss-halved";
     }
+    if (isMatchCollapsed(course.id, mi)) cls += " mss-collapsed";
     item.className = cls;
     item.id = "mss-" + course.id + "-" + mi;
+    item.setAttribute("data-match-index", String(mi));
+    item.setAttribute("title", "Click to collapse or expand this match in the scorecard");
     const teamAName = m.teamA.map(pi => displayName(pi)).join(" & ");
     const teamBName = m.teamB.map(pi => displayName(pi)).join(" & ");
     item.innerHTML =
@@ -2346,7 +2400,9 @@ function populateMatchStateStrip(course, strip) {
         '<span class="mss-vs">vs</span>' +
         '<span class="mss-t mss-t-b">' + teamBName + '</span>' +
       '</span>' +
-      '<span class="mss-status">' + (status ? status.status : "—") + '</span>';
+      '<span class="mss-status">' + (status ? status.status : "—") + '</span>' +
+      '<span class="mss-chevron">▾</span>';
+    item.addEventListener("click", function() { toggleMatchCollapse(course.id, mi); });
     strip.appendChild(item);
   });
 }
@@ -2501,6 +2557,7 @@ function renderScorecards() {
       const name = state.players[pi];
       const tr = document.createElement("tr");
       tr.id = "scorerow-" + course.id + "-" + pi;
+      if (opts.matchIndex != null) tr.setAttribute("data-match-index", String(opts.matchIndex));
       if (isGhostName(name)) tr.classList.add("ghost-row");
       if (opts.matchStart) tr.classList.add("match-start-row");
 
@@ -2572,6 +2629,7 @@ function renderScorecards() {
       const rr = document.createElement("tr");
       rr.className = "match-result-row";
       rr.id = "matchresult-row-" + course.id + "-" + mi;
+      rr.setAttribute("data-match-index", String(mi));
       const labelTd = document.createElement("td");
       labelTd.className = "name-cell match-result-label";
       labelTd.innerHTML = '<span class="mr-tag">M' + (mi + 1) + '</span> Result';
@@ -2594,7 +2652,7 @@ function renderScorecards() {
       scheduleDay.matches.forEach((m, mi) => {
         const matchPlayers = m.teamA.concat(m.teamB);
         matchPlayers.forEach((pi, subIdx) => {
-          addPlayerRow(pi, { matchStart: (mi > 0 && subIdx === 0) });
+          addPlayerRow(pi, { matchStart: (mi > 0 && subIdx === 0), matchIndex: mi });
         });
         addResultRow(mi);
       });
@@ -2605,6 +2663,7 @@ function renderScorecards() {
     }
 
     table.appendChild(tbody);
+    applyMatchCollapse(course.id);
   });
   refreshAllStablefordDisplays();
 }
