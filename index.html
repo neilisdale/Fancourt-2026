@@ -2706,20 +2706,29 @@ function renderScorecards() {
         inp.className = "stroke-input";
         inp.id = "stroke-" + course.id + "-" + pi + "-" + h;
         inp.disabled = isGhostName(name) || roundLocked || !holeActive;
-        // Option 0 = blank ("—"); options 1..10 = stroke count
+        // Options: blank ("—"), 1..10, then "Other…"
         const blankOpt = document.createElement("option");
-        blankOpt.value = "";
-        blankOpt.textContent = "—";
+        blankOpt.value = ""; blankOpt.textContent = "—";
         inp.appendChild(blankOpt);
         for (let v = 1; v <= 10; v++) {
           const opt = document.createElement("option");
-          opt.value = String(v);
-          opt.textContent = String(v);
+          opt.value = String(v); opt.textContent = String(v);
           inp.appendChild(opt);
         }
-        // Restore any existing value from state; if the saved value isn't in 1..10 it falls back to blank
+        // If saved value is >10 (from "Other"), add it as a dedicated option so the select can display it
+        const savedNum = parseInt(state.scores[course.id][pi][h]);
+        if (!isNaN(savedNum) && savedNum > 10 && savedNum < 100) {
+          const savedOpt = document.createElement("option");
+          savedOpt.value = String(savedNum); savedOpt.textContent = String(savedNum);
+          inp.appendChild(savedOpt);
+        }
+        const otherOpt = document.createElement("option");
+        otherOpt.value = "__other__"; otherOpt.textContent = "Other…";
+        inp.appendChild(otherOpt);
+        // Restore existing value
         const savedVal = state.scores[course.id][pi][h];
-        inp.value = (savedVal && parseInt(savedVal) >= 1 && parseInt(savedVal) <= 10) ? String(parseInt(savedVal)) : "";
+        const savedInt = parseInt(savedVal);
+        inp.value = (!isNaN(savedInt) && savedInt >= 1 && savedInt < 100) ? String(savedInt) : "";
         // First-tap default: on focus of an empty cell, pre-fill par so the wheel opens at par
         inp.addEventListener("focus", function() {
           if (inp.value === "") {
@@ -2734,7 +2743,31 @@ function renderScorecards() {
           }
         });
         inp.addEventListener("change", function() {
-          state.scores[course.id][pi][h] = inp.value;
+          if (inp.value === "__other__") {
+            const previous = state.scores[course.id][pi][h] || "";
+            const answer = prompt("Enter score (1–99):", previous || "");
+            if (answer === null) { inp.value = previous; return; }  // cancelled
+            const n = parseInt(answer);
+            if (isNaN(n) || n < 1 || n > 99) {
+              alert("Please enter a whole number between 1 and 99.");
+              inp.value = previous;
+              return;
+            }
+            // Ensure the select has an <option> for this value so it can be displayed
+            let existingOpt = null;
+            for (let i = 0; i < inp.options.length; i++) {
+              if (inp.options[i].value === String(n)) { existingOpt = inp.options[i]; break; }
+            }
+            if (!existingOpt) {
+              const newOpt = document.createElement("option");
+              newOpt.value = String(n); newOpt.textContent = String(n);
+              inp.insertBefore(newOpt, otherOpt);
+            }
+            inp.value = String(n);
+            state.scores[course.id][pi][h] = String(n);
+          } else {
+            state.scores[course.id][pi][h] = inp.value;
+          }
           saveState();
           refreshAllStablefordDisplays();
           if (state.revealed) revealWinners();
