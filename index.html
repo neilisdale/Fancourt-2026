@@ -365,6 +365,22 @@
     padding: 6px 10px;
     text-align: left;
   }
+  .scorecard tr.match-result-row td.mrr-toggle {
+    cursor: pointer;
+    user-select: none;
+  }
+  .scorecard tr.match-result-row td.mrr-toggle:hover { background: #1e293b; }
+  .mrr-chevron {
+    display: inline-block;
+    margin-left: 6px;
+    color: rgba(255,255,255,0.8);
+    font-size: 14px;
+    transition: transform 0.2s;
+    line-height: 1;
+  }
+  .scorecard tr.match-result-row.mrr-collapsed .mrr-chevron {
+    transform: rotate(-90deg);
+  }
   .scorecard tr.match-result-row .mr-tag {
     display: inline-block;
     background: rgba(255,255,255,0.15);
@@ -2346,7 +2362,14 @@ function applyMatchCollapse(courseId) {
   if (tbl) {
     tbl.querySelectorAll("tr[data-match-index]").forEach(function(row) {
       const mi = row.getAttribute("data-match-index");
-      row.style.display = isMatchCollapsed(courseId, mi) ? "none" : "";
+      const isResult = row.classList.contains("match-result-row");
+      const collapsed = isMatchCollapsed(courseId, mi);
+      if (isResult) {
+        // Result row stays visible — its chevron acts as the toggle
+        row.classList.toggle("mrr-collapsed", collapsed);
+      } else {
+        row.style.display = collapsed ? "none" : "";
+      }
     });
   }
   const strip = document.getElementById("mss-strip-" + courseId);
@@ -2630,9 +2653,12 @@ function renderScorecards() {
       rr.className = "match-result-row";
       rr.id = "matchresult-row-" + course.id + "-" + mi;
       rr.setAttribute("data-match-index", String(mi));
+      if (isMatchCollapsed(course.id, mi)) rr.classList.add("mrr-collapsed");
       const labelTd = document.createElement("td");
-      labelTd.className = "name-cell match-result-label";
-      labelTd.innerHTML = '<span class="mr-tag">M' + (mi + 1) + '</span> Result';
+      labelTd.className = "name-cell match-result-label mrr-toggle";
+      labelTd.setAttribute("title", "Click to collapse or expand this match");
+      labelTd.innerHTML = '<span class="mr-tag">M' + (mi + 1) + '</span> Result <span class="mrr-chevron">&#9662;</span>';
+      labelTd.addEventListener("click", function() { toggleMatchCollapse(course.id, mi); });
       rr.appendChild(labelTd);
       for (let h = 0; h < HOLES; h++) {
         const td = document.createElement("td");
