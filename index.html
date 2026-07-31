@@ -311,26 +311,38 @@
     line-height: 1;
   }
   .scorecard th.nine-toggle .nine-chev {
-    display: inline-block;
-    margin-top: 2px;
-    font-size: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 3px;
+    width: 20px;
+    height: 20px;
+    font-size: 15px;
+    font-weight: 900;
     line-height: 1;
-    transition: transform 0.2s;
+    color: #ffffff;
+    background: rgba(255,255,255,0.22);
+    border: 1.5px solid rgba(255,255,255,0.7);
+    border-radius: 999px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.35);
+    transition: transform 0.2s, background 0.15s, color 0.15s, border-color 0.15s;
+  }
+  .scorecard th.nine-toggle:hover .nine-chev {
+    background: var(--gold);
+    color: #0f1929;
+    border-color: var(--gold);
+    transform: scale(1.1);
   }
   .scorecard th.nine-toggle.nine-collapsed .nine-chev {
     transform: rotate(-90deg);
-  }
-  /* When collapsed, keep the OUT/IN cells visually prominent (they're now the primary view of that 9) */
-  .scorecard th.nine-toggle.nine-collapsed,
-  .scorecard td.subtotal-cell.nine-collapsed {
     background: var(--gold);
     color: #0f1929;
-    box-shadow: inset 0 -3px 0 rgba(0,0,0,0.2);
+    border-color: var(--gold);
   }
-  .scorecard tr.hdr-hole th.nine-toggle.nine-collapsed { color: #0f1929; }
-  .scorecard tr.hdr-par th.subtotal-cell.nine-collapsed { background: #fbbf24; color: #78350f; }
-  .scorecard tr.hdr-stroke th.subtotal-cell.nine-collapsed { background: #93c5fd; color: #1e3a8a; }
-  .scorecard tr.match-result-row td.subtotal-cell.nine-collapsed { background: var(--gold); color: #0f1929; }
+  .scorecard th.nine-toggle.nine-collapsed:hover .nine-chev {
+    transform: rotate(-90deg) scale(1.1);
+  }
+  /* Collapsed state: keep OUT/IN cell formatting identical to expanded — only the chevron rotation signals collapse (see .nine-collapsed .nine-chev above). */
   .scorecard th.name-cell, .scorecard td.name-cell,
   .course-setup th.row-label, .course-setup td.row-label {
     width: 170px;
@@ -2790,13 +2802,14 @@ function updateMatchResultRows() {
       let aWins = 0, bWins = 0, holesPlayed = 0;
       for (let h = 0; h < HOLES; h++) {
         const cell = document.getElementById("matchresult-" + course.id + "-" + mi + "-" + h);
+        const nineClass = h < 9 ? "hole-front" : "hole-back";
         if (!isHoleActive(course.id, h)) {
-          if (cell) { cell.textContent = ""; cell.className = "match-result-cell hole-inactive"; }
+          if (cell) { cell.textContent = ""; cell.className = "match-result-cell hole-inactive " + nineClass; }
           continue;
         }
         const anyA = m.teamA.some(pi => state.scores[course.id][pi][h] !== "" && state.scores[course.id][pi][h] != null);
         const anyB = m.teamB.some(pi => state.scores[course.id][pi][h] !== "" && state.scores[course.id][pi][h] != null);
-        let text = "", cls = "match-result-cell";
+        let text = "", cls = "match-result-cell " + nineClass;
         if (anyA || anyB) {
           const aPts = bestBallStableford(m.teamA, course.id, h);
           const bPts = bestBallStableford(m.teamB, course.id, h);
