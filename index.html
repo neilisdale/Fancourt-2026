@@ -233,6 +233,54 @@
     min-width: 72px;
     max-width: 72px;
   }
+  .scorecard th.subtotal-cell, .scorecard td.subtotal-cell {
+    width: 58px;
+    min-width: 58px;
+    max-width: 58px;
+    background: #e2e8f0;
+    color: #0f172a;
+    font-weight: 700;
+    border-left: 2px solid var(--green-dark);
+    border-right: 2px solid var(--green-dark);
+  }
+  .scorecard tr.hdr-hole th.subtotal-cell {
+    background: var(--green-dark);
+    color: white;
+    font-size: 12px;
+    letter-spacing: 0.6px;
+  }
+  .scorecard tr.hdr-par th.subtotal-cell {
+    background: #fde68a;
+    color: #78350f;
+  }
+  .scorecard tr.hdr-stroke th.subtotal-cell {
+    background: #bfdbfe;
+    color: #1e3a8a;
+  }
+  .scorecard td.subtotal-cell .sub-strokes {
+    display: block;
+    font-size: 14px;
+    font-weight: 800;
+    line-height: 1.1;
+  }
+  .scorecard td.subtotal-cell .sub-pts {
+    display: block;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--green-dark);
+    line-height: 1.1;
+    margin-top: 1px;
+  }
+  .scorecard tr.ghost-row td.subtotal-cell {
+    background: #fff4d6;
+    color: var(--gold);
+  }
+  .scorecard tr.match-result-row td.subtotal-cell {
+    background: #0f172a;
+    color: white;
+    border-left: 2px solid var(--gray-300);
+    border-right: 2px solid var(--gray-300);
+  }
   .scorecard th.name-cell, .scorecard td.name-cell,
   .course-setup th.row-label, .course-setup td.row-label {
     width: 170px;
@@ -879,6 +927,9 @@
     .course-setup th, .course-setup td { width: 38px; min-width: 38px; max-width: 38px; font-size: 12px; }
     .scorecard th.total-cell, .scorecard td.total-cell,
     .course-setup th.total-cell, .course-setup td.total-cell { width: 60px; min-width: 60px; max-width: 60px; }
+    .scorecard th.subtotal-cell, .scorecard td.subtotal-cell { width: 46px; min-width: 46px; max-width: 46px; }
+    .scorecard td.subtotal-cell .sub-strokes { font-size: 12px; }
+    .scorecard td.subtotal-cell .sub-pts { font-size: 9px; }
     .scorecard td.name-cell, .scorecard th.name-cell,
     .course-setup td.row-label, .course-setup th.row-label { width: 130px; min-width: 130px; max-width: 130px; font-size: 12px; }
     .result-row .total { font-size: 20px; }
@@ -2210,6 +2261,37 @@ function playerCourseStrokesTotal(pi, courseId) {
   return total;
 }
 
+// Per-9 helpers. nine=0 → holes 1-9 (indices 0..8); nine=1 → holes 10-18 (indices 9..17).
+function nineRange(nine) {
+  return nine === 0 ? { start: 0, end: 9 } : { start: 9, end: 18 };
+}
+function playerNineStrokesTotal(pi, courseId, nine) {
+  const r = nineRange(nine);
+  let total = 0;
+  for (let h = r.start; h < r.end; h++) {
+    const s = parseInt(state.scores[courseId][pi][h]);
+    if (s && s > 0) total += s;
+  }
+  return total;
+}
+function playerNineStablefordTotal(pi, courseId, nine) {
+  const r = nineRange(nine);
+  let total = 0;
+  for (let h = r.start; h < r.end; h++) total += playerHoleStableford(pi, courseId, h);
+  return total;
+}
+function coursePar9(courseId, nine) {
+  const info = state.courseInfo[courseId];
+  if (!info || !info.par) return 0;
+  const r = nineRange(nine);
+  let sum = 0;
+  for (let h = r.start; h < r.end; h++) {
+    const p = parseInt(info.par[h]);
+    if (p > 0) sum += p;
+  }
+  return sum;
+}
+
 // ---------- STEP 1: Players ----------
 function renderPlayers() {
   const countInp = document.getElementById("player-count-input");
@@ -2660,7 +2742,7 @@ function renderScorecards() {
     const thead = document.createElement("thead");
     const info = state.courseInfo[course.id];
 
-    // Row 1: "Hole" + hole numbers 1-18 + Pts
+    // Row 1: "Hole" + hole numbers 1-18 (with OUT after 9 and IN after 18) + Total
     const holeRow = document.createElement("tr");
     holeRow.className = "hdr-hole";
     const holeLbl = document.createElement("th");
@@ -2671,6 +2753,18 @@ function renderScorecards() {
       const th = document.createElement("th");
       th.textContent = h;
       holeRow.appendChild(th);
+      if (h === 9) {
+        const outTh = document.createElement("th");
+        outTh.className = "subtotal-cell";
+        outTh.textContent = "OUT";
+        holeRow.appendChild(outTh);
+      }
+      if (h === 18) {
+        const inTh = document.createElement("th");
+        inTh.className = "subtotal-cell";
+        inTh.textContent = "IN";
+        holeRow.appendChild(inTh);
+      }
     }
     const totalTh = document.createElement("th");
     totalTh.innerHTML = '<div class="tot-strokes-lbl">Strokes</div><div class="tot-pts-lbl">Stableford</div>';
@@ -2679,7 +2773,7 @@ function renderScorecards() {
     holeRow.appendChild(totalTh);
     thead.appendChild(holeRow);
 
-    // Row 2: "Par" + par values
+    // Row 2: "Par" + par values (with OUT/IN par subtotals)
     const parRow = document.createElement("tr");
     parRow.className = "hdr-par";
     const parLbl = document.createElement("th");
@@ -2692,10 +2786,26 @@ function renderScorecards() {
       th.textContent = (par > 0) ? par : "";
       if (!isHoleActive(course.id, h)) th.classList.add("hole-inactive");
       parRow.appendChild(th);
+      if (h === 8) {
+        const outPar = document.createElement("th");
+        outPar.className = "subtotal-cell";
+        outPar.id = "par-sub-out-" + course.id;
+        const p = coursePar9(course.id, 0);
+        outPar.textContent = p > 0 ? p : "";
+        parRow.appendChild(outPar);
+      }
+      if (h === 17) {
+        const inPar = document.createElement("th");
+        inPar.className = "subtotal-cell";
+        inPar.id = "par-sub-in-" + course.id;
+        const p = coursePar9(course.id, 1);
+        inPar.textContent = p > 0 ? p : "";
+        parRow.appendChild(inPar);
+      }
     }
     thead.appendChild(parRow);
 
-    // Row 3: "Stroke" + SI values
+    // Row 3: "Stroke" + SI values (with blank OUT/IN — SI doesn't sum)
     const siRow = document.createElement("tr");
     siRow.className = "hdr-stroke";
     const siLbl = document.createElement("th");
@@ -2708,12 +2818,21 @@ function renderScorecards() {
       th.textContent = (si > 0) ? si : "";
       if (!isHoleActive(course.id, h)) th.classList.add("hole-inactive");
       siRow.appendChild(th);
+      if (h === 8 || h === 17) {
+        const spacer = document.createElement("th");
+        spacer.className = "subtotal-cell";
+        spacer.textContent = "";
+        siRow.appendChild(spacer);
+      }
     }
     thead.appendChild(siRow);
-    // Also grey out the hole-number header for inactive holes
+    // Also grey out the hole-number header for inactive holes.
+    // Index layout: [Hole, 1..9, OUT, 10..18, IN, Total]
+    // → holes 0..8 sit at indices 1..9; holes 9..17 sit at indices 11..19.
     for (let h = 0; h < HOLES; h++) {
       if (!isHoleActive(course.id, h)) {
-        const th = holeRow.querySelectorAll("th")[h + 1];  // +1 to skip "Hole" label
+        const idx = (h < 9) ? (h + 1) : (h + 2);
+        const th = holeRow.querySelectorAll("th")[idx];
         if (th) th.classList.add("hole-inactive");
       }
     }
@@ -2763,6 +2882,13 @@ function renderScorecards() {
       tr.appendChild(nameTd);
 
       const roundLocked = isRoundCompleted(course.id);
+      // Helper to append an OUT or IN subtotal cell for this player row.
+      const appendSubtotalCell = (nine) => {
+        const st = document.createElement("td");
+        st.className = "subtotal-cell";
+        st.id = "subtotal-" + (nine === 0 ? "out" : "in") + "-" + course.id + "-" + pi;
+        tr.appendChild(st);
+      };
       for (let h = 0; h < HOLES; h++) {
         const td = document.createElement("td");
         td.className = "score-cell";
@@ -2888,6 +3014,8 @@ function renderScorecards() {
         pts.id = "pts-" + course.id + "-" + pi + "-" + h;
         td.appendChild(pts);
         tr.appendChild(td);
+        if (h === 8) appendSubtotalCell(0);   // OUT subtotal after hole 9
+        if (h === 17) appendSubtotalCell(1);  // IN subtotal after hole 18
       }
 
       const totalTd = document.createElement("td");
@@ -2924,6 +3052,12 @@ function renderScorecards() {
         td.className = "match-result-cell";
         td.id = "matchresult-" + course.id + "-" + mi + "-" + h;
         rr.appendChild(td);
+        // OUT/IN spacer cells to keep column alignment with the header
+        if (h === 8 || h === 17) {
+          const sub = document.createElement("td");
+          sub.className = "subtotal-cell";
+          rr.appendChild(sub);
+        }
       }
       const totalTd = document.createElement("td");
       totalTd.className = "total-cell match-result-total";
@@ -2991,6 +3125,21 @@ function refreshAllStablefordDisplays() {
           '<div class="tot-strokes">' + (strokes > 0 ? strokes : "") + '</div>' +
           '<div class="tot-pts">' + (Math.round(pts * 10) / 10) + ' pts</div>';
       }
+      // OUT / IN per-9 subtotals
+      [0, 1].forEach(nine => {
+        const key = nine === 0 ? "out" : "in";
+        const el = document.getElementById("subtotal-" + key + "-" + course.id + "-" + pi);
+        if (!el) return;
+        const strokes = playerNineStrokesTotal(pi, course.id, nine);
+        const pts = playerNineStablefordTotal(pi, course.id, nine);
+        if (strokes === 0 && pts === 0) {
+          el.innerHTML = "";
+        } else {
+          el.innerHTML =
+            '<span class="sub-strokes">' + (strokes > 0 ? strokes : "") + '</span>' +
+            '<span class="sub-pts">' + (Math.round(pts * 10) / 10) + ' pts</span>';
+        }
+      });
     });
   });
 }
