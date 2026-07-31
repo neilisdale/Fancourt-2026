@@ -283,6 +283,54 @@
     border-left: 2px solid var(--gray-300);
     border-right: 2px solid var(--gray-300);
   }
+  /* Per-9 collapse: hide front (holes 1-9) or back (10-18) columns */
+  .scorecard.hide-front .hole-front,
+  .scorecard.hide-back .hole-back { display: none; }
+
+  /* OUT/IN header cells act as toggle buttons */
+  .scorecard th.nine-toggle {
+    cursor: pointer;
+    user-select: none;
+    padding: 4px 2px;
+    transition: background 0.15s, box-shadow 0.15s;
+  }
+  .scorecard th.nine-toggle:hover {
+    background: var(--gold);
+    color: #0f1929;
+    box-shadow: inset 0 -3px 0 rgba(0,0,0,0.25);
+  }
+  .scorecard th.nine-toggle:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: -2px;
+  }
+  .scorecard th.nine-toggle .nine-lbl {
+    display: block;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.6px;
+    line-height: 1;
+  }
+  .scorecard th.nine-toggle .nine-chev {
+    display: inline-block;
+    margin-top: 2px;
+    font-size: 12px;
+    line-height: 1;
+    transition: transform 0.2s;
+  }
+  .scorecard th.nine-toggle.nine-collapsed .nine-chev {
+    transform: rotate(-90deg);
+  }
+  /* When collapsed, keep the OUT/IN cells visually prominent (they're now the primary view of that 9) */
+  .scorecard th.nine-toggle.nine-collapsed,
+  .scorecard td.subtotal-cell.nine-collapsed {
+    background: var(--gold);
+    color: #0f1929;
+    box-shadow: inset 0 -3px 0 rgba(0,0,0,0.2);
+  }
+  .scorecard tr.hdr-hole th.nine-toggle.nine-collapsed { color: #0f1929; }
+  .scorecard tr.hdr-par th.subtotal-cell.nine-collapsed { background: #fbbf24; color: #78350f; }
+  .scorecard tr.hdr-stroke th.subtotal-cell.nine-collapsed { background: #93c5fd; color: #1e3a8a; }
+  .scorecard tr.match-result-row td.subtotal-cell.nine-collapsed { background: var(--gold); color: #0f1929; }
   .scorecard th.name-cell, .scorecard td.name-cell,
   .course-setup th.row-label, .course-setup td.row-label {
     width: 170px;
@@ -2622,6 +2670,65 @@ function applyMatchCollapse(courseId) {
   }
 }
 
+// ---------- Per-9 column collapse (Scorecards / Play tab) ----------
+const NINE_COLLAPSE_KEY = "fancourt_nine_collapse_v1";
+let nineCollapseState = {};
+try {
+  const _rawN = localStorage.getItem(NINE_COLLAPSE_KEY);
+  if (_rawN) nineCollapseState = JSON.parse(_rawN) || {};
+} catch (e) {}
+
+function saveNineCollapseState() {
+  try { localStorage.setItem(NINE_COLLAPSE_KEY, JSON.stringify(nineCollapseState)); } catch (e) {}
+}
+function isNineCollapsed(courseId, nine) {
+  const key = courseId + "|" + (nine === 0 ? "front" : "back");
+  return !!nineCollapseState[key];
+}
+function toggleNineCollapse(courseId, nine) {
+  const key = courseId + "|" + (nine === 0 ? "front" : "back");
+  nineCollapseState[key] = !nineCollapseState[key];
+  saveNineCollapseState();
+  applyNineCollapse(courseId);
+  if (typeof invalidateFloatingHeaders === "function") invalidateFloatingHeaders();
+}
+function applyNineCollapse(courseId) {
+  const tbl = document.getElementById("scorecard-" + courseId);
+  if (!tbl) return;
+  const frontHidden = isNineCollapsed(courseId, 0);
+  const backHidden = isNineCollapsed(courseId, 1);
+  tbl.classList.toggle("hide-front", frontHidden);
+  tbl.classList.toggle("hide-back", backHidden);
+  tbl.querySelectorAll(".hole-nine-out").forEach(function(el) {
+    el.classList.toggle("nine-collapsed", frontHidden);
+  });
+  tbl.querySelectorAll(".hole-nine-in").forEach(function(el) {
+    el.classList.toggle("nine-collapsed", backHidden);
+  });
+}
+
+// Delegated handler: also catches clicks in the floating (sticky) header clone,
+// which doesn't inherit event listeners from the original cells.
+document.addEventListener("click", function(e) {
+  const t = e.target.closest(".nine-toggle");
+  if (!t) return;
+  const courseId = t.getAttribute("data-course-id");
+  const nine = parseInt(t.getAttribute("data-nine"));
+  if (!courseId || isNaN(nine)) return;
+  e.preventDefault();
+  toggleNineCollapse(courseId, nine);
+});
+document.addEventListener("keydown", function(e) {
+  if (e.key !== "Enter" && e.key !== " ") return;
+  const t = e.target.closest && e.target.closest(".nine-toggle");
+  if (!t) return;
+  const courseId = t.getAttribute("data-course-id");
+  const nine = parseInt(t.getAttribute("data-nine"));
+  if (!courseId || isNaN(nine)) return;
+  e.preventDefault();
+  toggleNineCollapse(courseId, nine);
+});
+
 function ensureMatchStateStrip(course) {
   // Match cards intentionally disabled — the Result row inside the scorecard
   // already carries the running match status, so a duplicate strip above the
@@ -2775,17 +2882,28 @@ function renderScorecards() {
     for (let h = 1; h <= HOLES; h++) {
       const th = document.createElement("th");
       th.textContent = h;
+      th.classList.add(h <= 9 ? "hole-front" : "hole-back");
       holeRow.appendChild(th);
       if (h === 9) {
         const outTh = document.createElement("th");
-        outTh.className = "subtotal-cell";
-        outTh.textContent = "OUT";
+        outTh.className = "subtotal-cell hole-nine-out nine-toggle";
+        outTh.setAttribute("role", "button");
+        outTh.setAttribute("tabindex", "0");
+        outTh.setAttribute("title", "Click to hide/show holes 1-9");
+        outTh.setAttribute("data-course-id", course.id);
+        outTh.setAttribute("data-nine", "0");
+        outTh.innerHTML = '<span class="nine-lbl">OUT</span><span class="nine-chev" aria-hidden="true">&#9662;</span>';
         holeRow.appendChild(outTh);
       }
       if (h === 18) {
         const inTh = document.createElement("th");
-        inTh.className = "subtotal-cell";
-        inTh.textContent = "IN";
+        inTh.className = "subtotal-cell hole-nine-in nine-toggle";
+        inTh.setAttribute("role", "button");
+        inTh.setAttribute("tabindex", "0");
+        inTh.setAttribute("title", "Click to hide/show holes 10-18");
+        inTh.setAttribute("data-course-id", course.id);
+        inTh.setAttribute("data-nine", "1");
+        inTh.innerHTML = '<span class="nine-lbl">IN</span><span class="nine-chev" aria-hidden="true">&#9662;</span>';
         holeRow.appendChild(inTh);
       }
     }
@@ -2807,11 +2925,12 @@ function renderScorecards() {
       const th = document.createElement("th");
       const par = info && info.par ? parseInt(info.par[h]) : NaN;
       th.textContent = (par > 0) ? par : "";
+      th.classList.add(h < 9 ? "hole-front" : "hole-back");
       if (!isHoleActive(course.id, h)) th.classList.add("hole-inactive");
       parRow.appendChild(th);
       if (h === 8) {
         const outPar = document.createElement("th");
-        outPar.className = "subtotal-cell";
+        outPar.className = "subtotal-cell hole-nine-out";
         outPar.id = "par-sub-out-" + course.id;
         const p = coursePar9(course.id, 0);
         outPar.textContent = p > 0 ? p : "";
@@ -2819,7 +2938,7 @@ function renderScorecards() {
       }
       if (h === 17) {
         const inPar = document.createElement("th");
-        inPar.className = "subtotal-cell";
+        inPar.className = "subtotal-cell hole-nine-in";
         inPar.id = "par-sub-in-" + course.id;
         const p = coursePar9(course.id, 1);
         inPar.textContent = p > 0 ? p : "";
@@ -2839,11 +2958,12 @@ function renderScorecards() {
       const th = document.createElement("th");
       const si = info && info.si ? parseInt(info.si[h]) : NaN;
       th.textContent = (si > 0) ? si : "";
+      th.classList.add(h < 9 ? "hole-front" : "hole-back");
       if (!isHoleActive(course.id, h)) th.classList.add("hole-inactive");
       siRow.appendChild(th);
       if (h === 8 || h === 17) {
         const spacer = document.createElement("th");
-        spacer.className = "subtotal-cell";
+        spacer.className = "subtotal-cell " + (h === 8 ? "hole-nine-out" : "hole-nine-in");
         spacer.textContent = "";
         siRow.appendChild(spacer);
       }
@@ -2908,13 +3028,13 @@ function renderScorecards() {
       // Helper to append an OUT or IN subtotal cell for this player row.
       const appendSubtotalCell = (nine) => {
         const st = document.createElement("td");
-        st.className = "subtotal-cell";
+        st.className = "subtotal-cell " + (nine === 0 ? "hole-nine-out" : "hole-nine-in");
         st.id = "subtotal-" + (nine === 0 ? "out" : "in") + "-" + course.id + "-" + pi;
         tr.appendChild(st);
       };
       for (let h = 0; h < HOLES; h++) {
         const td = document.createElement("td");
-        td.className = "score-cell";
+        td.className = "score-cell " + (h < 9 ? "hole-front" : "hole-back");
         const holeActive = isHoleActive(course.id, h);
         if (!holeActive) td.classList.add("hole-inactive");
         // Native <select> renders as a scrollable wheel picker on mobile (iOS / Android)
@@ -3072,13 +3192,13 @@ function renderScorecards() {
       rr.appendChild(labelTd);
       for (let h = 0; h < HOLES; h++) {
         const td = document.createElement("td");
-        td.className = "match-result-cell";
+        td.className = "match-result-cell " + (h < 9 ? "hole-front" : "hole-back");
         td.id = "matchresult-" + course.id + "-" + mi + "-" + h;
         rr.appendChild(td);
         // OUT/IN spacer cells to keep column alignment with the header
         if (h === 8 || h === 17) {
           const sub = document.createElement("td");
-          sub.className = "subtotal-cell";
+          sub.className = "subtotal-cell " + (h === 8 ? "hole-nine-out" : "hole-nine-in");
           rr.appendChild(sub);
         }
       }
@@ -3106,6 +3226,7 @@ function renderScorecards() {
 
     table.appendChild(tbody);
     applyMatchCollapse(course.id);
+    applyNineCollapse(course.id);
   });
   refreshAllStablefordDisplays();
   if (typeof invalidateFloatingHeaders === "function") invalidateFloatingHeaders();
