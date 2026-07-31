@@ -229,9 +229,11 @@
   }
   .scorecard th.total-cell, .scorecard td.total-cell,
   .course-setup th.total-cell, .course-setup td.total-cell {
-    width: 72px;
-    min-width: 72px;
-    max-width: 72px;
+    width: 92px;
+    min-width: 92px;
+    max-width: 92px;
+    overflow: visible;
+    white-space: nowrap;
   }
   .scorecard th.subtotal-cell, .scorecard td.subtotal-cell {
     width: 48px;
@@ -725,10 +727,11 @@
     background: var(--navy);
     font-weight: 800;
     color: #ffffff;
-    padding: 6px 8px;
-    min-width: 60px;
+    padding: 6px 4px;
     line-height: 1.15;
     border-left: 2px solid var(--navy-dark);
+    overflow: visible;
+    white-space: nowrap;
   }
   .scorecard .total-cell .tot-strokes {
     font-size: 17px;
@@ -747,15 +750,17 @@
     font-weight: 800;
     color: #ffffff;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.2px;
+    white-space: nowrap;
   }
   .scorecard .total-cell .tot-pts-lbl {
     font-size: 9px;
     font-weight: 700;
     color: var(--gold);
     text-transform: uppercase;
-    letter-spacing: 0.4px;
+    letter-spacing: 0.1px;
     margin-top: 1px;
+    white-space: nowrap;
   }
   .scorecard tr.ghost-row .total-cell {
     background: var(--navy-dark);
@@ -944,7 +949,7 @@
     .scorecard th, .scorecard td,
     .course-setup th, .course-setup td { width: 38px; min-width: 38px; max-width: 38px; font-size: 12px; }
     .scorecard th.total-cell, .scorecard td.total-cell,
-    .course-setup th.total-cell, .course-setup td.total-cell { width: 60px; min-width: 60px; max-width: 60px; }
+    .course-setup th.total-cell, .course-setup td.total-cell { width: 78px; min-width: 78px; max-width: 78px; }
     .scorecard th.subtotal-cell, .scorecard td.subtotal-cell { width: 40px; min-width: 40px; max-width: 40px; }
     .scorecard td.subtotal-cell .sub-strokes { font-size: 12px; }
     .scorecard td.subtotal-cell .sub-pts { font-size: 9px; }
@@ -1557,7 +1562,7 @@
 
   <!-- STEP 4: Scores -->
   <section class="step" data-tab="play" id="tab-play-strokes">
-    <h2><span class="step-num">4</span> Gross strokes</h2>
+    <h2><span class="step-num">4</span> Scorecards</h2>
     <div class="round-chips" id="round-chips-play" role="tablist" aria-label="Select round"></div>
     <div class="help-text">Tap a round above to switch. Handicaps are entered next to each player name.</div>
     <div class="course-section" data-round-slot="round1">
