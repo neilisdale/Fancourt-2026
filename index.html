@@ -3289,6 +3289,11 @@ function renderScorecards() {
   if (typeof invalidateFloatingHeaders === "function") invalidateFloatingHeaders();
 }
 
+// Returns every element matching the given id. A player scheduled in more than one
+// match produces multiple DOM rows with the same id; getElementById only returns the
+// first, which is why the second occurrence's totals used to stay blank.
+function _allById(id) { return document.querySelectorAll('[id="' + id + '"]'); }
+
 function refreshAllStablefordDisplays() {
   refreshLeaderboards();
   updateMatchStateStrips();
@@ -3297,49 +3302,60 @@ function refreshAllStablefordDisplays() {
     state.players.forEach((_, pi) => {
       const isGhost = isPlayerGhost(pi);
       for (let h = 0; h < HOLES; h++) {
-        const el = document.getElementById("pts-" + course.id + "-" + pi + "-" + h);
-        if (!el) continue;
-        if (!isHoleActive(course.id, h)) {
-          el.textContent = "";
-          el.classList.remove("has-points");
-        } else if (isGhost) {
-          const avg = teamAverageStablefordOnHole(course.id, h, teamOfPlayer(pi));
-          el.textContent = (Math.round(avg * 10) / 10) + " pts";
-          el.classList.add("has-points");
-        } else {
-          const strokes = state.scores[course.id][pi][h];
-          if (strokes === "" || strokes == null) {
+        const els = _allById("pts-" + course.id + "-" + pi + "-" + h);
+        if (!els.length) continue;
+        els.forEach(el => {
+          if (!isHoleActive(course.id, h)) {
             el.textContent = "";
             el.classList.remove("has-points");
+          } else if (isGhost) {
+            const avg = teamAverageStablefordOnHole(course.id, h, teamOfPlayer(pi));
+            el.textContent = (Math.round(avg * 10) / 10) + " pts";
+            el.classList.add("has-points");
           } else {
-            const pts = playerHoleStableford(pi, course.id, h);
-            el.textContent = pts + " pt" + (pts === 1 ? "" : "s");
-            el.classList.toggle("has-points", pts > 0);
+            const strokes = state.scores[course.id][pi][h];
+            if (strokes === "" || strokes == null) {
+              el.textContent = "";
+              el.classList.remove("has-points");
+            } else {
+              const pts = playerHoleStableford(pi, course.id, h);
+              el.textContent = pts + " pt" + (pts === 1 ? "" : "s");
+              el.classList.toggle("has-points", pts > 0);
+            }
           }
-        }
+        });
+        // Sync every stroke input for this (course, pi, hole) so a value typed
+        // in one row is reflected in every duplicate row of the same player.
+        _allById("stroke-" + course.id + "-" + pi + "-" + h).forEach(inp => {
+          const savedVal = state.scores[course.id][pi][h];
+          const savedInt = parseInt(savedVal);
+          const desired = (!isNaN(savedInt) && savedInt >= 1 && savedInt < 100) ? String(savedInt) : "";
+          if (inp.value !== desired) inp.value = desired;
+        });
       }
-      const totEl = document.getElementById("total-" + course.id + "-" + pi);
-      if (totEl) {
+      _allById("total-" + course.id + "-" + pi).forEach(totEl => {
         const pts = playerCourseStablefordTotal(pi, course.id);
         const strokes = playerCourseStrokesTotal(pi, course.id);
         totEl.innerHTML =
           '<div class="tot-strokes">' + (strokes > 0 ? strokes : "") + '</div>' +
           '<div class="tot-pts">' + (Math.round(pts * 10) / 10) + ' pts</div>';
-      }
+      });
       // OUT / IN per-9 subtotals
       [0, 1].forEach(nine => {
         const key = nine === 0 ? "out" : "in";
-        const el = document.getElementById("subtotal-" + key + "-" + course.id + "-" + pi);
-        if (!el) return;
+        const els = _allById("subtotal-" + key + "-" + course.id + "-" + pi);
+        if (!els.length) return;
         const strokes = playerNineStrokesTotal(pi, course.id, nine);
         const pts = playerNineStablefordTotal(pi, course.id, nine);
-        if (strokes === 0 && pts === 0) {
-          el.innerHTML = "";
-        } else {
-          el.innerHTML =
-            '<span class="sub-strokes">' + (strokes > 0 ? strokes : "") + '</span>' +
-            '<span class="sub-pts">' + (Math.round(pts * 10) / 10) + ' pts</span>';
-        }
+        els.forEach(el => {
+          if (strokes === 0 && pts === 0) {
+            el.innerHTML = "";
+          } else {
+            el.innerHTML =
+              '<span class="sub-strokes">' + (strokes > 0 ? strokes : "") + '</span>' +
+              '<span class="sub-pts">' + (Math.round(pts * 10) / 10) + ' pts</span>';
+          }
+        });
       });
     });
   });
@@ -3572,7 +3588,12 @@ function _ensureFloatingHeader(slot) {
     entry = { slot: slot };
     entry.container = document.createElement("div");
     entry.container.className = "floating-scorecard-header";
-    entry.container.style.cssText = "display:none;position:fixed;top:0;left:0;overflow:hidden;z-index:30;pointer-events:none;background:white;box-shadow:0 4px 10px rgba(0,0,0,0.15);";
+    // pointer-events:auto so the OUT/IN nine-toggle chevrons in the sticky
+    // (floating) header can be clicked. Individual score inputs inside the
+    // clone are already disabled during clone-time, so nothing else is
+    // interactive; scrolling works fine because the container is a thin
+    // header strip that doesn't overlap the body content.
+    entry.container.style.cssText = "display:none;position:fixed;top:0;left:0;overflow:hidden;z-index:30;pointer-events:auto;background:white;box-shadow:0 4px 10px rgba(0,0,0,0.15);";
     document.body.appendChild(entry.container);
     entry.scrollHandler = function() { _syncFloatingScroll(slot); };
     _floatingHeaderRegistry[slot] = entry;
