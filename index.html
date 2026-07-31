@@ -242,8 +242,20 @@
     background: #e2e8f0;
     color: #0f172a;
     font-weight: 700;
-    border-left: 2px solid var(--green-dark);
-    border-right: 2px solid var(--green-dark);
+    border-left: 3px solid var(--navy);
+    border-right: 3px solid var(--navy);
+  }
+  /* Force the same thick border on every subtotal cell — headers, players, ghost rows,
+     match result rows — so the OUT/IN column has a consistent left edge across all rows,
+     especially when the front-9 or back-9 columns are collapsed. */
+  .scorecard tr.hdr-hole th.subtotal-cell,
+  .scorecard tr.hdr-par th.subtotal-cell,
+  .scorecard tr.hdr-stroke th.subtotal-cell,
+  .scorecard tr.ghost-row td.subtotal-cell,
+  .scorecard tr.match-result-row td.subtotal-cell,
+  .scorecard tbody tr td.subtotal-cell {
+    border-left: 3px solid var(--navy);
+    border-right: 3px solid var(--navy);
   }
   .scorecard tr.hdr-hole th.subtotal-cell {
     background: var(--green-dark);
@@ -280,8 +292,7 @@
   .scorecard tr.match-result-row td.subtotal-cell {
     background: #0f172a;
     color: white;
-    border-left: 2px solid var(--gray-300);
-    border-right: 2px solid var(--gray-300);
+    /* border-left/right set above in the shared-thickness rule */
   }
   /* Per-9 collapse: hide front (holes 1-9) or back (10-18) columns */
   .scorecard.hide-front .hole-front,
@@ -384,6 +395,8 @@
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.4px;
+    text-align: left;
+    padding: 4px 10px;
   }
   .scorecard tr.hdr-stroke th {
     background: #dbeafe;              /* cool blue */
@@ -399,6 +412,8 @@
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.4px;
+    text-align: left;
+    padding: 4px 10px;
   }
   .scorecard tr.hdr-hole th.name-cell {
     background: var(--green-light);
@@ -407,6 +422,8 @@
     font-size: 12px;
     text-transform: uppercase;
     letter-spacing: 0.4px;
+    text-align: left;
+    padding: 6px 10px;
   }
   .scorecard td.name-cell, .scorecard th.name-cell,
   .course-setup td.row-label, .course-setup th.row-label {
