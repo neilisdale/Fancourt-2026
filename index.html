@@ -535,6 +535,12 @@
   }
   .scorecard tr.match-result-row.mrr-collapsed .mrr-chevron {
     transform: rotate(-90deg);
+    background: var(--gold);
+    color: #0f1929;
+    border-color: var(--gold);
+  }
+  .scorecard tr.match-result-row.mrr-collapsed td.mrr-toggle:hover .mrr-chevron {
+    transform: rotate(-90deg) scale(1.05);
   }
   .scorecard tr.match-result-row .mr-tag {
     display: inline-block;
