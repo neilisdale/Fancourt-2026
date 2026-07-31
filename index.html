@@ -234,9 +234,9 @@
     max-width: 72px;
   }
   .scorecard th.subtotal-cell, .scorecard td.subtotal-cell {
-    width: 58px;
-    min-width: 58px;
-    max-width: 58px;
+    width: 48px;
+    min-width: 48px;
+    max-width: 48px;
     background: #e2e8f0;
     color: #0f172a;
     font-weight: 700;
@@ -299,6 +299,14 @@
     color: var(--green-dark);
     font-weight: 700;
     padding: 6px 0;
+  }
+  /* Total header cell: dark navy with white text, more prominent */
+  .scorecard tr.hdr-hole th.total-cell {
+    background: var(--navy);
+    color: #ffffff;
+    font-weight: 800;
+    padding: 6px 4px;
+    border-left: 2px solid var(--navy-dark);
   }
   .scorecard tr.hdr-par th {
     background: #fef3c7;              /* warm amber */
@@ -714,36 +722,46 @@
   }
 
   .scorecard .total-cell {
-    background: var(--green-light);
-    font-weight: 600;
-    color: var(--green-dark);
+    background: var(--navy);
+    font-weight: 800;
+    color: #ffffff;
     padding: 6px 8px;
     min-width: 60px;
     line-height: 1.15;
+    border-left: 2px solid var(--navy-dark);
   }
   .scorecard .total-cell .tot-strokes {
-    font-size: 15px;
-    font-weight: 700;
+    font-size: 17px;
+    font-weight: 900;
+    color: #ffffff;
+    letter-spacing: 0.2px;
   }
   .scorecard .total-cell .tot-pts {
-    font-size: 10px;
-    font-weight: 600;
-    color: var(--gray-500);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--gold);
     margin-top: 2px;
   }
   .scorecard .total-cell .tot-strokes-lbl {
     font-size: 10px;
-    font-weight: 700;
+    font-weight: 800;
+    color: #ffffff;
     text-transform: uppercase;
-    letter-spacing: 0.4px;
+    letter-spacing: 0.5px;
   }
   .scorecard .total-cell .tot-pts-lbl {
     font-size: 9px;
-    font-weight: 600;
-    color: var(--gray-500);
+    font-weight: 700;
+    color: var(--gold);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
     margin-top: 1px;
   }
-  .scorecard tr.ghost-row .total-cell { background: #fff4d6; color: var(--gold); }
+  .scorecard tr.ghost-row .total-cell {
+    background: var(--navy-dark);
+    color: var(--gold);
+  }
+  .scorecard tr.ghost-row .total-cell .tot-strokes { color: var(--gold); }
 
   .btn-row {
     display: flex;
@@ -927,7 +945,7 @@
     .course-setup th, .course-setup td { width: 38px; min-width: 38px; max-width: 38px; font-size: 12px; }
     .scorecard th.total-cell, .scorecard td.total-cell,
     .course-setup th.total-cell, .course-setup td.total-cell { width: 60px; min-width: 60px; max-width: 60px; }
-    .scorecard th.subtotal-cell, .scorecard td.subtotal-cell { width: 46px; min-width: 46px; max-width: 46px; }
+    .scorecard th.subtotal-cell, .scorecard td.subtotal-cell { width: 40px; min-width: 40px; max-width: 40px; }
     .scorecard td.subtotal-cell .sub-strokes { font-size: 12px; }
     .scorecard td.subtotal-cell .sub-pts { font-size: 9px; }
     .scorecard td.name-cell, .scorecard th.name-cell,
