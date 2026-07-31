@@ -2806,9 +2806,12 @@ function updateMatchResultRows() {
     if (!scheduleDay) return;
     scheduleDay.matches.forEach((m, mi) => {
       let aWins = 0, bWins = 0, holesPlayed = 0;
+      // Per-9 tallies for OUT / IN subtotals (hole-by-hole wins on that 9 alone).
+      let aWins9 = [0, 0], bWins9 = [0, 0], holes9 = [0, 0];
       for (let h = 0; h < HOLES; h++) {
         const cell = document.getElementById("matchresult-" + course.id + "-" + mi + "-" + h);
         const nineClass = h < 9 ? "hole-front" : "hole-back";
+        const nine = h < 9 ? 0 : 1;
         if (!isHoleActive(course.id, h)) {
           if (cell) { cell.textContent = ""; cell.className = "match-result-cell hole-inactive " + nineClass; }
           continue;
@@ -2819,9 +2822,10 @@ function updateMatchResultRows() {
         if (anyA || anyB) {
           const aPts = bestBallStableford(m.teamA, course.id, h);
           const bPts = bestBallStableford(m.teamB, course.id, h);
-          if (aPts > bPts) aWins++;
-          else if (bPts > aPts) bWins++;
+          if (aPts > bPts) { aWins++; aWins9[nine]++; }
+          else if (bPts > aPts) { bWins++; bWins9[nine]++; }
           holesPlayed++;
+          holes9[nine]++;
           const lead = aWins - bWins;
           if (lead === 0) { text = "AS"; cls += " mrc-halved"; }
           else if (lead > 0) { text = "A " + lead; cls += " mrc-a-up"; }
@@ -2829,6 +2833,21 @@ function updateMatchResultRows() {
         }
         if (cell) { cell.textContent = text; cell.className = cls; }
       }
+      // Populate the OUT / IN subtotal cells with each 9's own match result.
+      [0, 1].forEach(function(nine) {
+        const key = nine === 0 ? "out" : "in";
+        const el = document.getElementById("matchresult-sub-" + key + "-" + course.id + "-" + mi);
+        if (!el) return;
+        let text = "", cls = "subtotal-cell " + (nine === 0 ? "hole-nine-out" : "hole-nine-in");
+        if (holes9[nine] > 0) {
+          const lead9 = aWins9[nine] - bWins9[nine];
+          if (lead9 === 0) { text = "AS"; cls += " mrc-halved"; }
+          else if (lead9 > 0) { text = "A " + lead9; cls += " mrc-a-up"; }
+          else { text = "B " + Math.abs(lead9); cls += " mrc-b-up"; }
+        }
+        el.textContent = text;
+        el.className = cls;
+      });
       // Total cell: overall match status text
       const status = computeMatchStatus(m, roundIdx);
       const totalTd = document.getElementById("matchresult-total-" + course.id + "-" + mi);
@@ -3214,10 +3233,12 @@ function renderScorecards() {
         td.className = "match-result-cell " + (h < 9 ? "hole-front" : "hole-back");
         td.id = "matchresult-" + course.id + "-" + mi + "-" + h;
         rr.appendChild(td);
-        // OUT/IN spacer cells to keep column alignment with the header
+        // OUT/IN subtotal cells: populated by updateMatchResultRows with the per-9 match result.
         if (h === 8 || h === 17) {
           const sub = document.createElement("td");
+          const key = (h === 8) ? "out" : "in";
           sub.className = "subtotal-cell " + (h === 8 ? "hole-nine-out" : "hole-nine-in");
+          sub.id = "matchresult-sub-" + key + "-" + course.id + "-" + mi;
           rr.appendChild(sub);
         }
       }
