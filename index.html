@@ -574,7 +574,22 @@
     color: white;
     font-size: 11px;
     font-weight: 700;
-    padding: 6px 6px;
+    padding: 4px 4px;
+    line-height: 1.15;
+    white-space: normal;
+    text-align: center;
+  }
+  .scorecard tr.match-result-row td.match-result-total .mrt-primary {
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+  }
+  .scorecard tr.match-result-row td.match-result-total .mrt-secondary {
+    font-size: 9.5px;
+    font-weight: 600;
+    opacity: 0.85;
+    margin-top: 2px;
     white-space: nowrap;
   }
   /* Per-hole state colours */
@@ -2869,7 +2884,19 @@ function updateMatchResultRows() {
       const status = computeMatchStatus(m, roundIdx);
       const totalTd = document.getElementById("matchresult-total-" + course.id + "-" + mi);
       if (totalTd) {
-        totalTd.textContent = status ? status.status : "";
+        const raw = status ? status.status : "";
+        // Split "B 4 UP thru 4" / "AS thru 13" into two lines so the total cell
+        // fits comfortably on narrow (mobile) widths without truncation.
+        const thruIdx = raw.indexOf(" thru ");
+        if (thruIdx > 0) {
+          const primary = raw.substring(0, thruIdx);
+          const secondary = raw.substring(thruIdx + 1); // "thru 4"
+          totalTd.innerHTML =
+            '<div class="mrt-primary">' + primary + '</div>' +
+            '<div class="mrt-secondary">' + secondary + '</div>';
+        } else {
+          totalTd.innerHTML = '<div class="mrt-primary">' + raw + '</div>';
+        }
         let totalCls = "total-cell match-result-total";
         if (status && status.holesPlayed > 0) {
           if (status.aPoints > status.bPoints) totalCls += " mrc-a-up";
