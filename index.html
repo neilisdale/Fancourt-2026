@@ -388,13 +388,32 @@
     user-select: none;
   }
   .scorecard tr.match-result-row td.mrr-toggle:hover { background: #1e293b; }
+  .scorecard tr.match-result-row td.mrr-toggle:hover .mrr-chevron {
+    background: var(--gold);
+    color: #0f1929;
+    border-color: var(--gold);
+    transform: scale(1.05);
+  }
+  .scorecard tr.match-result-row.mrr-collapsed td.mrr-toggle:hover .mrr-chevron {
+    transform: rotate(-90deg) scale(1.05);
+  }
   .mrr-chevron {
-    display: inline-block;
-    margin-left: 6px;
-    color: rgba(255,255,255,0.8);
-    font-size: 14px;
-    transition: transform 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 10px;
+    background: rgba(255,255,255,0.18);
+    color: #fff;
+    border: 1.5px solid rgba(255,255,255,0.55);
+    border-radius: 999px;
+    width: 26px;
+    height: 26px;
+    font-size: 16px;
+    font-weight: 900;
     line-height: 1;
+    transition: transform 0.2s, background 0.15s, color 0.15s, border-color 0.15s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.35);
+    vertical-align: middle;
   }
   .scorecard tr.match-result-row.mrr-collapsed .mrr-chevron {
     transform: rotate(-90deg);
@@ -2499,17 +2518,13 @@ function applyMatchCollapse(courseId) {
 }
 
 function ensureMatchStateStrip(course) {
-  const wrap = document.querySelector('#tab-play-strokes .course-section[data-round-slot="' + course.id + '"] .scorecard-wrap');
-  if (!wrap) return;
-  const section = wrap.parentElement;
-  let strip = section.querySelector(".match-state-strip");
-  if (!strip) {
-    strip = document.createElement("div");
-    strip.className = "match-state-strip";
-    strip.id = "mss-strip-" + course.id;
-    section.insertBefore(strip, wrap);
-  }
-  populateMatchStateStrip(course, strip);
+  // Match cards intentionally disabled — the Result row inside the scorecard
+  // already carries the running match status, so a duplicate strip above the
+  // table adds no value. Purge any stray strip that may have been created.
+  const section = document.querySelector('#tab-play-strokes .course-section[data-round-slot="' + course.id + '"]');
+  if (!section) return;
+  const strip = section.querySelector(".match-state-strip");
+  if (strip) strip.remove();
 }
 
 function populateMatchStateStrip(course, strip) {
@@ -2632,11 +2647,8 @@ function renderScoreName(nameDiv, pi) {
 }
 
 function renderScorecards() {
-  // Purge any stray match-state-strip elements outside the Play tab
-  // (e.g. previously inserted inside Setup tab's Course Setup sections).
-  document.querySelectorAll('.match-state-strip').forEach(el => {
-    if (!el.closest('#tab-play-strokes')) el.remove();
-  });
+  // Match cards are disabled — purge any leftover strips anywhere in the DOM.
+  document.querySelectorAll('.match-state-strip').forEach(el => el.remove());
   COURSES.forEach(course => {
     const table = document.getElementById("scorecard-" + course.id);
     table.innerHTML = "";
@@ -2895,8 +2907,17 @@ function renderScorecards() {
       const labelTd = document.createElement("td");
       labelTd.className = "name-cell match-result-label mrr-toggle";
       labelTd.setAttribute("title", "Click to collapse or expand this match");
-      labelTd.innerHTML = '<span class="mr-tag">M' + (mi + 1) + '</span> Result <span class="mrr-chevron">&#9662;</span>';
-      labelTd.addEventListener("click", function() { toggleMatchCollapse(course.id, mi); });
+      labelTd.setAttribute("role", "button");
+      labelTd.setAttribute("tabindex", "0");
+      labelTd.innerHTML = '<span class="mr-tag">M' + (mi + 1) + '</span> Result <span class="mrr-chevron" aria-hidden="true">&#9662;</span>';
+      // Make the whole result row a hit target for easier tapping.
+      const doToggle = function(e) { e.stopPropagation(); toggleMatchCollapse(course.id, mi); };
+      labelTd.addEventListener("click", doToggle);
+      labelTd.addEventListener("keydown", function(e) {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); doToggle(e); }
+      });
+      rr.style.cursor = "pointer";
+      rr.addEventListener("click", doToggle);
       rr.appendChild(labelTd);
       for (let h = 0; h < HOLES; h++) {
         const td = document.createElement("td");
