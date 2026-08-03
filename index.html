@@ -1032,6 +1032,20 @@
     outline: 2px solid var(--gold);
     outline-offset: -1px;
   }
+  .course-selector-row .round-format-select {
+    padding: 6px 10px;
+    font-size: 13px;
+    background: var(--gray-50);
+    color: var(--gray-700);
+    margin-top: 4px;
+  }
+  .course-selector-row .round-format-select[data-format="front9"],
+  .course-selector-row .round-format-select[data-format="back9"] {
+    background: #fef3c7;
+    color: #78350f;
+    font-weight: 600;
+    border-color: #d4a017;
+  }
 
   .footer-actions {
     margin-top: 24px;
@@ -1626,18 +1640,38 @@
       <div data-round-slot="round1">
         <label for="course-select-round1">Round 1</label>
         <select id="course-select-round1"></select>
+        <select id="round-format-round1" class="round-format-select">
+          <option value="full">Full round (18 holes)</option>
+          <option value="front9">Front 9 only (holes 1&ndash;9)</option>
+          <option value="back9">Back 9 only (holes 10&ndash;18)</option>
+        </select>
       </div>
       <div data-round-slot="round2">
         <label for="course-select-round2">Round 2</label>
         <select id="course-select-round2"></select>
+        <select id="round-format-round2" class="round-format-select">
+          <option value="full">Full round (18 holes)</option>
+          <option value="front9">Front 9 only (holes 1&ndash;9)</option>
+          <option value="back9">Back 9 only (holes 10&ndash;18)</option>
+        </select>
       </div>
       <div data-round-slot="round3" class="hidden">
         <label for="course-select-round3">Round 3</label>
         <select id="course-select-round3"></select>
+        <select id="round-format-round3" class="round-format-select">
+          <option value="full">Full round (18 holes)</option>
+          <option value="front9">Front 9 only (holes 1&ndash;9)</option>
+          <option value="back9">Back 9 only (holes 10&ndash;18)</option>
+        </select>
       </div>
       <div data-round-slot="round4" class="hidden">
         <label for="course-select-round4">Round 4</label>
         <select id="course-select-round4"></select>
+        <select id="round-format-round4" class="round-format-select">
+          <option value="full">Full round (18 holes)</option>
+          <option value="front9">Front 9 only (holes 1&ndash;9)</option>
+          <option value="back9">Back 9 only (holes 10&ndash;18)</option>
+        </select>
       </div>
     </div>
     <div class="course-section" data-round-slot="round1">
@@ -2044,6 +2078,12 @@ function makeHandicapsByCourse(playerCount) {
   return h;
 }
 
+function makeDefaultRoundFormat() {
+  const rf = {};
+  COURSES.forEach(c => { rf[c.id] = "full"; });
+  return rf;
+}
+
 function freshState() {
   return {
     schemaVersion: STATE_VERSION,
@@ -2055,6 +2095,7 @@ function freshState() {
     matchSchedule: cloneSchedule(DEFAULT_MATCH_SCHEDULE),
     completedRounds: [],
     setupLocked: false,
+    roundFormat: makeDefaultRoundFormat(),
     pairs: null,
     oddsEvens: null,
     revealed: false,
@@ -2073,6 +2114,10 @@ if (!Array.isArray(state.matchSchedule)) {
 }
 if (!Array.isArray(state.completedRounds)) state.completedRounds = [];
 if (typeof state.setupLocked !== "boolean") state.setupLocked = false;
+if (!state.roundFormat || typeof state.roundFormat !== "object") state.roundFormat = makeDefaultRoundFormat();
+COURSES.forEach(c => {
+  if (["full", "front9", "back9"].indexOf(state.roundFormat[c.id]) < 0) state.roundFormat[c.id] = "full";
+});
 // Reshape schedule to fit current player+round counts (in case they differ from when saved)
 conformScheduleToCounts();
 // Backfill / repair handicaps. Migrate old single-array shape to per-course.
@@ -2538,11 +2583,23 @@ function displayNameWithTeam(pi) {
 function applyCatalogCourse(slotId, catalogKey) {
   const entry = findCatalogEntry(catalogKey);
   if (!entry) return;
+  const par = entry.par.slice();
+  const si = entry.si.slice();
+  // Honor the current round format — blank out excluded holes so the new
+  // course inherits the same "front 9 only" / "back 9 only" restriction.
+  const fmt = (state.roundFormat && state.roundFormat[slotId]) || "full";
+  if (fmt === "front9" || fmt === "back9") {
+    for (let h = 0; h < HOLES; h++) {
+      const isFront = h < 9;
+      const blank = (fmt === "front9" && !isFront) || (fmt === "back9" && isFront);
+      if (blank) { par[h] = ""; si[h] = ""; }
+    }
+  }
   state.courseInfo[slotId] = {
     catalogKey: entry.key,
     name: entry.name,
-    par: entry.par.slice(),
-    si: entry.si.slice()
+    par: par,
+    si: si
   };
   saveState();
   refreshCourseTitles();
@@ -2580,7 +2637,46 @@ function renderCourseSelectors() {
     }
     const info = state.courseInfo[c.id];
     if (info && info.catalogKey) sel.value = info.catalogKey;
+
+    // Round-format selector (Full / Front 9 / Back 9)
+    const fmtSel = document.getElementById("round-format-" + c.id);
+    if (fmtSel) {
+      if (!fmtSel._bound) {
+        fmtSel.addEventListener("change", () => applyRoundFormat(c.id, fmtSel.value));
+        fmtSel._bound = true;
+      }
+      const cur = (state.roundFormat && state.roundFormat[c.id]) || "full";
+      fmtSel.value = cur;
+      fmtSel.setAttribute("data-format", cur);
+    }
   });
+}
+
+// Zero out (blank) par + stroke index for the holes not being played when the
+// user restricts a round to just the front 9 or back 9. Full round restores
+// blanks only for holes that were previously excluded (no-op if unchanged).
+function applyRoundFormat(courseId, fmt) {
+  if (["full", "front9", "back9"].indexOf(fmt) < 0) fmt = "full";
+  if (!state.roundFormat) state.roundFormat = makeDefaultRoundFormat();
+  state.roundFormat[courseId] = fmt;
+  const info = state.courseInfo[courseId];
+  if (info && Array.isArray(info.par) && Array.isArray(info.si)) {
+    for (let h = 0; h < HOLES; h++) {
+      const isFront = h < 9;
+      const blank = (fmt === "front9" && !isFront) || (fmt === "back9" && isFront);
+      if (blank) {
+        info.par[h] = "";
+        info.si[h] = "";
+      }
+    }
+  }
+  saveState();
+  renderCourseSetup();
+  renderScorecards();
+  refreshAllStablefordDisplays();
+  // Reflect the visual state (colour) on the select itself
+  const fmtSel = document.getElementById("round-format-" + courseId);
+  if (fmtSel) fmtSel.setAttribute("data-format", fmt);
 }
 
 function renderCourseSetup() {
@@ -3822,6 +3918,10 @@ function applyRemoteState(remote) {
   }
   if (!Array.isArray(state.completedRounds)) state.completedRounds = [];
   if (typeof state.setupLocked !== "boolean") state.setupLocked = false;
+  if (!state.roundFormat || typeof state.roundFormat !== "object") state.roundFormat = makeDefaultRoundFormat();
+  COURSES.forEach(c => {
+    if (["full", "front9", "back9"].indexOf(state.roundFormat[c.id]) < 0) state.roundFormat[c.id] = "full";
+  });
   conformScheduleToCounts();
   if (!state.handicapsByCourse) state.handicapsByCourse = makeHandicapsByCourse(state.players.length);
   COURSES.forEach(c => {
