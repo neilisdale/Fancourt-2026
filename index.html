@@ -1211,8 +1211,33 @@
   }
   .team-badge-a { background: #1d4ed8; }
   .team-badge-b { background: #b91c1c; }
+  .team-badge-c { background: #047857; }
+  .team-badge-d { background: #b45309; }
+  .team-badge-e { background: #6d28d9; }
+  .team-badge-f { background: #be185d; }
   .player-card.team-a { border-left: 4px solid #1d4ed8; }
   .player-card.team-b { border-left: 4px solid #b91c1c; }
+  .player-card.team-c { border-left: 4px solid #047857; }
+  .player-card.team-d { border-left: 4px solid #b45309; }
+  .player-card.team-e { border-left: 4px solid #6d28d9; }
+  .player-card.team-f { border-left: 4px solid #be185d; }
+  .team-select {
+    padding: 6px 8px;
+    border: 1px solid var(--gray-300);
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 700;
+    font-family: inherit;
+    background: white;
+    cursor: pointer;
+    min-width: 74px;
+  }
+  .team-select[data-team="A"] { background: #1d4ed8; color: white; border-color: #1d4ed8; }
+  .team-select[data-team="B"] { background: #b91c1c; color: white; border-color: #b91c1c; }
+  .team-select[data-team="C"] { background: #047857; color: white; border-color: #047857; }
+  .team-select[data-team="D"] { background: #b45309; color: white; border-color: #b45309; }
+  .team-select[data-team="E"] { background: #6d28d9; color: white; border-color: #6d28d9; }
+  .team-select[data-team="F"] { background: #be185d; color: white; border-color: #be185d; }
 
   .day-block { margin-bottom: 16px; }
   .day-header {
@@ -1422,26 +1447,38 @@
   .team-scoreboard {
     display: flex;
     align-items: stretch;
+    flex-wrap: wrap;
+    gap: 4px;
     background: rgba(0,0,0,0.15);
     border-radius: 8px;
     overflow: hidden;
+    padding: 2px;
   }
   .ts-side {
-    flex: 1;
+    flex: 1 1 140px;
+    min-width: 0;
     padding: 8px 12px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 8px;
+    border-radius: 6px;
   }
   .ts-a { background: rgba(29, 78, 216, 0.85); }
   .ts-b { background: rgba(185, 28, 28, 0.85); }
+  .ts-c { background: rgba(4, 120, 87, 0.85); }
+  .ts-d { background: rgba(180, 83, 9, 0.85); }
+  .ts-e { background: rgba(109, 40, 217, 0.85); }
+  .ts-f { background: rgba(190, 24, 93, 0.85); }
   .ts-label {
     font-size: 12px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     color: white;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .ts-score {
     font-size: 24px;
@@ -1452,15 +1489,19 @@
   .ts-vs {
     display: flex;
     align-items: center;
-    padding: 0 8px;
+    padding: 0 6px;
     font-size: 10px;
     color: #c8d3e0;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     font-weight: 700;
     background: transparent;
+    flex: 0 0 auto;
   }
   .ts-side.leading { box-shadow: inset 0 -3px 0 var(--gold); }
+  /* When 3+ teams are in play we stop showing "vs" and tighten each chip a bit */
+  .team-scoreboard.multi .ts-side { padding: 6px 10px; flex-basis: 100px; }
+  .team-scoreboard.multi .ts-score { font-size: 20px; }
 
   .app-tab-bar {
     display: flex;
@@ -1580,17 +1621,7 @@
         <button class="app-refresh-btn" onclick="refreshSyncNow()" type="button" id="sync-refresh-btn">Refresh</button>
       </div>
     </div>
-    <div class="team-scoreboard" id="header-scoreboard">
-      <div class="ts-side ts-a" id="ts-side-a">
-        <span class="ts-label">Team A</span>
-        <span class="ts-score" id="ts-a-score">0</span>
-      </div>
-      <div class="ts-vs">vs</div>
-      <div class="ts-side ts-b" id="ts-side-b">
-        <span class="ts-label">Team B</span>
-        <span class="ts-score" id="ts-b-score">0</span>
-      </div>
-    </div>
+    <div class="team-scoreboard" id="header-scoreboard"><!-- populated by renderHeaderScoreboard() --></div>
     <nav class="app-tab-bar" role="tablist" aria-label="Main sections">
       <button class="app-tab active" role="tab" aria-selected="true" data-tab-target="play" onclick="switchTab('play')">Play</button>
       <button class="app-tab" role="tab" aria-selected="false" data-tab-target="matches" onclick="switchTab('matches')">Matches</button>
@@ -1818,25 +1849,40 @@ const DEFAULT_PLAYERS = [
 ];
 const MIN_PLAYERS = 2;
 const MAX_PLAYERS = 16;
-const TEAM_NAMES = { A: "Team A", B: "Team B" };
-// Teams split the player list in half: first half A, second half B.
+const TEAMS = ["A", "B", "C", "D", "E", "F"];
+const TEAM_NAMES = { A: "Team A", B: "Team B", C: "Team C", D: "Team D", E: "Team E", F: "Team F" };
+// Legacy half-split default (used only to seed initial state / new players).
 function teamHalfPoint() {
   return Math.ceil((state && state.players ? state.players.length : DEFAULT_PLAYERS.length) / 2);
 }
-function teamAIndices() {
-  const half = teamHalfPoint();
+function defaultTeamAssignments(count) {
+  const half = Math.ceil(count / 2);
   const arr = [];
-  for (let i = 0; i < half; i++) arr.push(i);
+  for (let i = 0; i < count; i++) arr.push(i < half ? "A" : "B");
   return arr;
 }
-function teamBIndices() {
-  const half = teamHalfPoint();
-  const total = (state && state.players ? state.players.length : DEFAULT_PLAYERS.length);
+// Explicit team assignment per player. Falls back to legacy A/B halves if
+// state.playerTeams is missing (older saved data) or an entry is invalid.
+function teamOfPlayer(pi) {
+  const t = state && state.playerTeams && state.playerTeams[pi];
+  if (TEAMS.indexOf(t) >= 0) return t;
+  return pi < teamHalfPoint() ? "A" : "B";
+}
+function indicesOfTeam(team) {
   const arr = [];
-  for (let i = half; i < total; i++) arr.push(i);
+  const n = state && state.players ? state.players.length : 0;
+  for (let i = 0; i < n; i++) if (teamOfPlayer(i) === team) arr.push(i);
   return arr;
 }
-function teamOfPlayer(pi) { return pi < teamHalfPoint() ? "A" : "B"; }
+function teamAIndices() { return indicesOfTeam("A"); }
+function teamBIndices() { return indicesOfTeam("B"); }
+// Distinct team letters currently in play, in canonical A-F order.
+function teamsInPlay() {
+  const seen = {};
+  const n = state && state.players ? state.players.length : 0;
+  for (let i = 0; i < n; i++) seen[teamOfPlayer(i)] = true;
+  return TEAMS.filter(t => seen[t]);
+}
 const DEFAULT_MATCH_SCHEDULE = [
   { day: 1, roundIdx: 0, matches: [
     { teamA: [0, 1], teamB: [4, 5] },
@@ -2130,6 +2176,7 @@ function freshState() {
     setupLocked: false,
     roundFormat: makeDefaultRoundFormat(),
     scoringFormat: "betterBall",
+    playerTeams: defaultTeamAssignments(DEFAULT_PLAYERS.length),
     pairs: null,
     oddsEvens: null,
     revealed: false,
@@ -2152,6 +2199,15 @@ if (!state.roundFormat || typeof state.roundFormat !== "object") state.roundForm
 COURSES.forEach(c => {
   if (["full", "front9", "back9"].indexOf(state.roundFormat[c.id]) < 0) state.roundFormat[c.id] = "full";
 });
+if (SCORING_FORMATS.indexOf(state.scoringFormat) < 0) state.scoringFormat = "betterBall";
+if (!Array.isArray(state.playerTeams) || state.playerTeams.length !== state.players.length) {
+  state.playerTeams = defaultTeamAssignments(state.players.length);
+}
+for (let _i = 0; _i < state.players.length; _i++) {
+  if (TEAMS.indexOf(state.playerTeams[_i]) < 0) {
+    state.playerTeams[_i] = (_i < Math.ceil(state.players.length / 2)) ? "A" : "B";
+  }
+}
 // Reshape schedule to fit current player+round counts (in case they differ from when saved)
 conformScheduleToCounts();
 // Backfill / repair handicaps. Migrate old single-array shape to per-course.
@@ -2527,10 +2583,37 @@ function renderPlayers() {
       refreshAllStablefordDisplays();
     });
 
+    // Team selector (A–F)
+    const teamSel = document.createElement("select");
+    teamSel.className = "team-select";
+    teamSel.setAttribute("data-team", team);
+    teamSel.setAttribute("title", "Assign player to a team");
+    teamSel.setAttribute("aria-label", "Team for " + (name || "player " + (i + 1)));
+    TEAMS.forEach(t => {
+      const opt = document.createElement("option");
+      opt.value = t;
+      opt.textContent = t;
+      if (t === team) opt.selected = true;
+      teamSel.appendChild(opt);
+    });
+    teamSel.addEventListener("change", () => setPlayerTeam(i, teamSel.value));
+
     wrap.appendChild(badge);
     wrap.appendChild(nameInp);
+    wrap.appendChild(teamSel);
     c.appendChild(wrap);
   });
+}
+
+function setPlayerTeam(pi, team) {
+  if (TEAMS.indexOf(team) < 0) return;
+  if (!Array.isArray(state.playerTeams)) state.playerTeams = defaultTeamAssignments(state.players.length);
+  state.playerTeams[pi] = team;
+  saveState();
+  renderPlayers();
+  updateNameCells();
+  refreshAllStablefordDisplays();
+  if (typeof renderMatchSchedule === "function") renderMatchSchedule();
 }
 
 function setPlayerCount(newCount) {
@@ -2552,13 +2635,16 @@ function setPlayerCount(newCount) {
       return;
     }
     state.players = state.players.slice(0, newCount);
+    if (Array.isArray(state.playerTeams)) state.playerTeams = state.playerTeams.slice(0, newCount);
     COURSES.forEach(c => {
       state.scores[c.id] = state.scores[c.id].slice(0, newCount);
       state.handicapsByCourse[c.id] = state.handicapsByCourse[c.id].slice(0, newCount);
     });
   } else {
+    if (!Array.isArray(state.playerTeams)) state.playerTeams = defaultTeamAssignments(oldCount);
     for (let i = oldCount; i < newCount; i++) {
       state.players.push("");
+      state.playerTeams.push(i < Math.ceil(newCount / 2) ? "A" : "B");
       COURSES.forEach(c => {
         state.scores[c.id].push(Array(HOLES).fill(""));
         state.handicapsByCourse[c.id].push(0);
@@ -4013,6 +4099,12 @@ function applyRemoteState(remote) {
     if (["full", "front9", "back9"].indexOf(state.roundFormat[c.id]) < 0) state.roundFormat[c.id] = "full";
   });
   if (SCORING_FORMATS.indexOf(state.scoringFormat) < 0) state.scoringFormat = "betterBall";
+  if (!Array.isArray(state.playerTeams) || state.playerTeams.length !== state.players.length) {
+    state.playerTeams = defaultTeamAssignments(state.players.length);
+  }
+  for (let i = 0; i < state.players.length; i++) {
+    if (TEAMS.indexOf(state.playerTeams[i]) < 0) state.playerTeams[i] = (i < Math.ceil(state.players.length / 2)) ? "A" : "B";
+  }
   conformScheduleToCounts();
   if (!state.handicapsByCourse) state.handicapsByCourse = makeHandicapsByCourse(state.players.length);
   COURSES.forEach(c => {
@@ -4719,18 +4811,86 @@ function renderRoundChips() {
   }
 }
 
+// Per-team totals for whatever teams (A–F) are currently in play.
+// - Match-play format (betterBall): totals are match points earned from the
+//   Matches tab (aggregated by each side's assigned team letter).
+// - Total-points formats (combined / alliance): totals are the sum of each
+//   team's own team-hole points across every active round, i.e. the ongoing
+//   competition score for that team.
+function computeAllTeamStandings() {
+  const teams = teamsInPlay();
+  const totals = {};
+  teams.forEach(t => { totals[t] = 0; });
+  const fmt = currentScoringFormat();
+
+  if (fmt === "betterBall") {
+    (state.matchSchedule || DEFAULT_MATCH_SCHEDULE).forEach(day => {
+      day.matches.forEach(m => {
+        const s = computeMatchStatus(m, day.roundIdx);
+        if (!s) return;
+        const teamAletter = m.teamA && m.teamA.length ? teamOfPlayer(m.teamA[0]) : "A";
+        const teamBletter = m.teamB && m.teamB.length ? teamOfPlayer(m.teamB[0]) : "B";
+        if (totals[teamAletter] == null) totals[teamAletter] = 0;
+        if (totals[teamBletter] == null) totals[teamBletter] = 0;
+        totals[teamAletter] += s.aPoints;
+        totals[teamBletter] += s.bPoints;
+      });
+    });
+  } else {
+    // Sum team-hole points across active rounds for the entire team roster.
+    getActiveCourses().forEach(course => {
+      teams.forEach(t => {
+        const pis = indicesOfTeam(t);
+        if (!pis.length) return;
+        for (let h = 0; h < HOLES; h++) {
+          if (!isHoleActive(course.id, h)) continue;
+          totals[t] += teamHolePoints(pis, course.id, h, fmt);
+        }
+      });
+    });
+  }
+  // Determine the current leader (or leaders on a tie)
+  let max = -Infinity;
+  teams.forEach(t => { if (totals[t] > max) max = totals[t]; });
+  const leaders = teams.filter(t => totals[t] === max && max > 0);
+  return { teams, totals, leaders };
+}
+
 function renderHeaderScoreboard() {
-  const aScore = document.getElementById("ts-a-score");
-  const bScore = document.getElementById("ts-b-score");
-  const aSide = document.getElementById("ts-side-a");
-  const bSide = document.getElementById("ts-side-b");
-  if (!aScore || !bScore) return;
-  const s = computeTeamStandings();
-  const fmt = n => (Math.round(n * 10) / 10);
-  aScore.textContent = fmt(s.aTotal);
-  bScore.textContent = fmt(s.bTotal);
-  if (aSide) aSide.classList.toggle("leading", s.aTotal > s.bTotal);
-  if (bSide) bSide.classList.toggle("leading", s.bTotal > s.aTotal);
+  const wrap = document.getElementById("header-scoreboard");
+  if (!wrap) return;
+  const s = computeAllTeamStandings();
+  const round1 = n => (Math.round(n * 10) / 10);
+  wrap.innerHTML = "";
+  const n = s.teams.length;
+  wrap.classList.toggle("multi", n > 2);
+  s.teams.forEach((t, idx) => {
+    const side = document.createElement("div");
+    side.className = "ts-side ts-" + t.toLowerCase();
+    if (s.leaders.length === 1 && s.leaders[0] === t) side.classList.add("leading");
+    side.id = "ts-side-" + t.toLowerCase();
+    const lbl = document.createElement("span");
+    lbl.className = "ts-label";
+    lbl.textContent = "Team " + t;
+    const score = document.createElement("span");
+    score.className = "ts-score";
+    score.id = "ts-" + t.toLowerCase() + "-score";
+    score.textContent = round1(s.totals[t]);
+    side.appendChild(lbl);
+    side.appendChild(score);
+    wrap.appendChild(side);
+    // "vs" separator only when exactly two teams
+    if (n === 2 && idx === 0) {
+      const vs = document.createElement("div");
+      vs.className = "ts-vs";
+      vs.textContent = "vs";
+      wrap.appendChild(vs);
+    }
+  });
+  // If no players / no teams yet, keep the header non-empty with a placeholder
+  if (!n) {
+    wrap.innerHTML = '<div class="ts-side" style="background:rgba(255,255,255,0.06);color:#c8d3e0;">No teams configured</div>';
+  }
 }
 
 // ---------- Setup Lock ----------
