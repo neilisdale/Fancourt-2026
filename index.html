@@ -596,6 +596,18 @@
   .scorecard tr.match-result-row td.mrc-a-up { background: #1d4ed8; color: white; }
   .scorecard tr.match-result-row td.mrc-b-up { background: #b91c1c; color: white; }
   .scorecard tr.match-result-row td.mrc-halved { background: #d4a017; color: #0f1929; }
+  /* Team-total cells (used when the match roster is all one team — no A-vs-B) */
+  .scorecard tr.match-result-row td.mrc-team-total {
+    background: #0f172a;
+    color: var(--gold);
+    font-weight: 800;
+  }
+  .scorecard tr.match-result-row[data-team-letter="A"] td.mrc-team-total { background: #1d4ed8; color: white; }
+  .scorecard tr.match-result-row[data-team-letter="B"] td.mrc-team-total { background: #b91c1c; color: white; }
+  .scorecard tr.match-result-row[data-team-letter="C"] td.mrc-team-total { background: #047857; color: white; }
+  .scorecard tr.match-result-row[data-team-letter="D"] td.mrc-team-total { background: #b45309; color: white; }
+  .scorecard tr.match-result-row[data-team-letter="E"] td.mrc-team-total { background: #6d28d9; color: white; }
+  .scorecard tr.match-result-row[data-team-letter="F"] td.mrc-team-total { background: #be185d; color: white; }
 
   /* Inactive holes (blank par + blank stroke index in Course Setup) */
   .scorecard td.hole-inactive,
@@ -3088,12 +3100,36 @@ function updateMatchResultRows() {
     const fmt = currentScoringFormat();
     const matchPlay = fmt === "betterBall";
     scheduleDay.matches.forEach((m, mi) => {
+      // If everyone in this match roster is on the same team, an A-vs-B
+      // "match result" is meaningless (there is no opponent). Show the row
+      // as a team total instead: cumulative team-hole points, per hole,
+      // OUT/IN, and grand total for the round.
+      const rosterTeams = m.teamA.concat(m.teamB).map(pi => teamOfPlayer(pi));
+      const uniqueTeams = rosterTeams.filter((t, idx) => rosterTeams.indexOf(t) === idx);
+      const singleTeam = uniqueTeams.length === 1 ? uniqueTeams[0] : null;
+      // Toggle row-level state (used by CSS for label + colouring)
+      _allById("matchresult-row-" + course.id + "-" + mi).forEach(row => {
+        row.classList.toggle("mrr-team-total", !!singleTeam);
+        if (singleTeam) row.setAttribute("data-team-letter", singleTeam);
+        else row.removeAttribute("data-team-letter");
+        // Rebuild the "Result" label cell — swap "Result" for "Team X" when
+        // there's no A-vs-B opponent (all match players on the same team).
+        const labelCell = row.querySelector(".match-result-label");
+        if (labelCell) {
+          const labelText = singleTeam ? (" Team " + singleTeam + " ") : " Result ";
+          labelCell.innerHTML = '<span class="mr-tag">M' + (mi + 1) + '</span>' + labelText + '<span class="mrr-chevron" aria-hidden="true">&#9662;</span>';
+        }
+      });
+
       // Match-play tallies (holes won) — used when fmt = betterBall
       let aWins = 0, bWins = 0, holesPlayed = 0;
       let aWins9 = [0, 0], bWins9 = [0, 0], holes9 = [0, 0];
       // Point-total tallies (all formats — used for non-match-play display + subtotals)
       let aTot9 = [0, 0], bTot9 = [0, 0];
       let aRunTot = 0, bRunTot = 0;
+      // Single-team running total (all match players as one team)
+      let stRunTot = 0, stTot9 = [0, 0], stHoles9 = [0, 0];
+      const allMatchPis = m.teamA.concat(m.teamB);
       for (let h = 0; h < HOLES; h++) {
         const cell = document.getElementById("matchresult-" + course.id + "-" + mi + "-" + h);
         const nineClass = h < 9 ? "hole-front" : "hole-back";
@@ -3105,7 +3141,20 @@ function updateMatchResultRows() {
         const anyA = m.teamA.some(pi => state.scores[course.id][pi][h] !== "" && state.scores[course.id][pi][h] != null);
         const anyB = m.teamB.some(pi => state.scores[course.id][pi][h] !== "" && state.scores[course.id][pi][h] != null);
         let text = "", cls = "match-result-cell " + nineClass;
-        if (anyA || anyB) {
+        if (singleTeam) {
+          // No opponent — show cumulative team-hole points for the whole match roster.
+          const anyPlayed = allMatchPis.some(pi => state.scores[course.id][pi][h] !== "" && state.scores[course.id][pi][h] != null);
+          if (anyPlayed) {
+            const teamPts = teamHolePoints(allMatchPis, course.id, h, fmt);
+            stRunTot += teamPts;
+            stTot9[nine] += teamPts;
+            stHoles9[nine]++;
+            holesPlayed++;
+            const rounded = Math.round(stRunTot * 10) / 10;
+            text = String(rounded);
+            cls += " mrc-team-total";
+          }
+        } else if (anyA || anyB) {
           const aPts = teamHolePoints(m.teamA, course.id, h, fmt);
           const bPts = teamHolePoints(m.teamB, course.id, h, fmt);
           aRunTot += aPts; bRunTot += bPts;
@@ -3135,6 +3184,13 @@ function updateMatchResultRows() {
         const el = document.getElementById("matchresult-sub-" + key + "-" + course.id + "-" + mi);
         if (!el) return;
         let text = "", cls = "subtotal-cell " + (nine === 0 ? "hole-nine-out" : "hole-nine-in");
+        if (singleTeam) {
+          if (stHoles9[nine] > 0) {
+            text = String(Math.round(stTot9[nine] * 10) / 10);
+            cls += " mrc-team-total";
+          }
+          el.textContent = text; el.className = cls; return;
+        }
         if (holes9[nine] > 0) {
         if (!matchPlay) {
           const diff9 = Math.round((aTot9[nine] - bTot9[nine]) * 10) / 10;
@@ -3151,6 +3207,18 @@ function updateMatchResultRows() {
         el.textContent = text;
         el.className = cls;
       });
+      // Total cell for single-team case: show cumulative team total instead of A vs B status
+      if (singleTeam) {
+        const totalTd = document.getElementById("matchresult-total-" + course.id + "-" + mi);
+        if (totalTd) {
+          const roundedTot = Math.round(stRunTot * 10) / 10;
+          totalTd.innerHTML =
+            '<div class="mrt-primary">' + roundedTot + '</div>' +
+            '<div class="mrt-secondary">pts thru ' + holesPlayed + '</div>';
+          totalTd.className = "total-cell match-result-total mrc-team-total";
+        }
+        return; // skip the standard A-vs-B total below
+      }
       // Total cell: overall match status text
       const status = computeMatchStatus(m, roundIdx);
       const totalTd = document.getElementById("matchresult-total-" + course.id + "-" + mi);
