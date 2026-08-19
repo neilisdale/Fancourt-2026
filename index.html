@@ -1911,6 +1911,33 @@ const DEFAULT_MATCH_SCHEDULE = [
 ];
 function cloneSchedule(sched) { return JSON.parse(JSON.stringify(sched)); }
 
+// Build a team-based match schedule for Alliance / Combined formats.
+// Each round gets one match per team; if a team has more than 4 players,
+// they are split into consecutive 4-balls (still under the same team letter).
+// Rebuilding uses the current player + team assignments; teamB stays empty
+// so the "singleTeam" branch in updateMatchResultRows treats each row as a
+// team-total scorecard rather than an A-vs-B match.
+function generateAllianceSchedule() {
+  const rc = Math.max(MIN_ROUNDS, Math.min(MAX_ROUNDS, state.roundCount || DEFAULT_ROUNDS));
+  const teams = teamsInPlay();
+  const schedule = [];
+  for (let r = 0; r < rc; r++) {
+    const matches = [];
+    teams.forEach(t => {
+      const pis = indicesOfTeam(t);
+      if (!pis.length) return;
+      // Split large teams into 4-balls, keeping the original player order.
+      for (let i = 0; i < pis.length; i += 4) {
+        matches.push({ teamA: pis.slice(i, i + 4), teamB: [] });
+      }
+    });
+    // Fallback: if no teams (empty roster), keep a single empty match to preserve shape.
+    if (!matches.length) matches.push({ teamA: [], teamB: [] });
+    schedule.push({ day: r + 1, roundIdx: r, matches: matches });
+  }
+  return schedule;
+}
+
 function validateMatchSchedule() {
   if (!Array.isArray(state.matchSchedule) || !Array.isArray(state.players)) return;
   const maxIdx = state.players.length - 1;
@@ -2621,9 +2648,14 @@ function setPlayerTeam(pi, team) {
   if (TEAMS.indexOf(team) < 0) return;
   if (!Array.isArray(state.playerTeams)) state.playerTeams = defaultTeamAssignments(state.players.length);
   state.playerTeams[pi] = team;
+  // Team-total formats: keep the schedule aligned so each 4-ball is one team.
+  if (isTeamTotalFormat()) {
+    state.matchSchedule = generateAllianceSchedule();
+  }
   saveState();
   renderPlayers();
   updateNameCells();
+  if (typeof renderScorecards === "function") renderScorecards();
   refreshAllStablefordDisplays();
   if (typeof renderMatchSchedule === "function") renderMatchSchedule();
 }
@@ -2668,7 +2700,11 @@ function setPlayerCount(newCount) {
   state.pairs = null;
   state.oddsEvens = null;
   state.revealed = false;
-  conformScheduleToCounts();
+  if (isTeamTotalFormat()) {
+    state.matchSchedule = generateAllianceSchedule();
+  } else {
+    conformScheduleToCounts();
+  }
   saveState();
 
   renderPlayers();
@@ -2807,11 +2843,23 @@ function updateScoringFormatHint() {
   };
   hint.textContent = map[currentScoringFormat()] || "";
 }
+function isTeamTotalFormat(fmt) {
+  fmt = fmt || currentScoringFormat();
+  return fmt === "alliance2" || fmt === "alliance3" || fmt === "combined";
+}
 function applyScoringFormat(fmt) {
   if (SCORING_FORMATS.indexOf(fmt) < 0) fmt = "betterBall";
+  const previous = state.scoringFormat || "betterBall";
   state.scoringFormat = fmt;
+  // Auto-regenerate the match schedule when switching INTO a team-total
+  // format so each 4-ball is one team (Better Ball match play keeps whatever
+  // custom pairings the user has built).
+  if (isTeamTotalFormat(fmt) && !isTeamTotalFormat(previous)) {
+    state.matchSchedule = generateAllianceSchedule();
+  }
   saveState();
   updateScoringFormatHint();
+  if (typeof renderScorecards === "function") renderScorecards();
   refreshAllStablefordDisplays();
   if (typeof renderMatchSchedule === "function") renderMatchSchedule();
   if (typeof refreshLeaderboards === "function") refreshLeaderboards();
@@ -4722,7 +4770,11 @@ function setRoundCount(newCount) {
   state.pairs = null;
   state.oddsEvens = null;
   state.revealed = false;
-  conformScheduleToCounts();
+  if (isTeamTotalFormat()) {
+    state.matchSchedule = generateAllianceSchedule();
+  } else {
+    conformScheduleToCounts();
+  }
   saveState();
   applyRoundCountVisibility();
   renderScorecards();
