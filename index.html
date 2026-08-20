@@ -7,11 +7,11 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Fancourt 2026">
+<meta name="apple-mobile-web-app-title" content="Tour Score">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
 <link rel="manifest" href="manifest.json">
-<title>Fancourt 2026</title>
+<title>Tour Score</title>
 <style>
   :root {
     /* Mayday Tour 2026 palette — sampled from the logo (#15253e navy) */
@@ -596,6 +596,14 @@
   .scorecard tr.match-result-row td.mrc-a-up { background: #1d4ed8; color: white; }
   .scorecard tr.match-result-row td.mrc-b-up { background: #b91c1c; color: white; }
   .scorecard tr.match-result-row td.mrc-halved { background: #d4a017; color: #0f1929; }
+  /* Team-based per-hole result colours — used when the winning team isn't A or B
+     (e.g. Team C wins a hole in an A-vs-C match). */
+  .scorecard tr.match-result-row td.mrc-team-a { background: #1d4ed8; color: white; }
+  .scorecard tr.match-result-row td.mrc-team-b { background: #b91c1c; color: white; }
+  .scorecard tr.match-result-row td.mrc-team-c { background: #047857; color: white; }
+  .scorecard tr.match-result-row td.mrc-team-d { background: #b45309; color: white; }
+  .scorecard tr.match-result-row td.mrc-team-e { background: #6d28d9; color: white; }
+  .scorecard tr.match-result-row td.mrc-team-f { background: #be185d; color: white; }
   /* Team-total cells (used when the match roster is all one team — no A-vs-B) */
   .scorecard tr.match-result-row td.mrc-team-total {
     background: #0f172a;
@@ -1058,6 +1066,28 @@
     font-weight: 600;
     border-color: #d4a017;
   }
+  .course-selector-row .scoring-format-select {
+    padding: 6px 10px;
+    font-size: 13px;
+    background: var(--gray-50);
+    color: var(--gray-700);
+    margin-top: 4px;
+    font-weight: 600;
+  }
+  /* Stableford formats (Better Ball, Combined) → blue.
+     Alliance formats (top-2/top-3 counting) → green. */
+  .course-selector-row .scoring-format-select[data-format="betterBall"],
+  .course-selector-row .scoring-format-select[data-format="combined"] {
+    background: #dbeafe;
+    color: #1e40af;
+    border-color: #1e40af;
+  }
+  .course-selector-row .scoring-format-select[data-format="alliance2"],
+  .course-selector-row .scoring-format-select[data-format="alliance3"] {
+    background: #d1fae5;
+    color: #065f46;
+    border-color: #047857;
+  }
 
   .footer-actions {
     margin-top: 24px;
@@ -1251,6 +1281,68 @@
   .team-select[data-team="E"] { background: #6d28d9; color: white; border-color: #6d28d9; }
   .team-select[data-team="F"] { background: #be185d; color: white; border-color: #be185d; }
 
+  /* Matches tab — alliance / combined view */
+  .alliance-format-banner {
+    background: var(--navy-50);
+    color: var(--navy-dark);
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 14px;
+    margin-bottom: 12px;
+  }
+  .alliance-format-teams {
+    color: var(--gray-500);
+    font-size: 13px;
+    margin-left: 6px;
+  }
+  .alliance-empty {
+    color: var(--gray-500);
+    padding: 12px 14px;
+    font-style: italic;
+  }
+  table.team-totals-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  table.team-totals-table th, table.team-totals-table td {
+    padding: 10px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--gray-200);
+    font-size: 14px;
+  }
+  table.team-totals-table th {
+    background: var(--gray-50);
+    color: var(--gray-700);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    font-size: 11px;
+  }
+  table.team-totals-table th.tt-round, table.team-totals-table td.tt-round { text-align: right; }
+  table.team-totals-table th.tt-total, table.team-totals-table td.tt-total {
+    text-align: right;
+    font-weight: 800;
+    font-size: 16px;
+    color: var(--navy-dark);
+    width: 90px;
+  }
+  table.team-totals-table td.tt-players {
+    color: var(--gray-700);
+    font-size: 13px;
+  }
+  table.team-totals-table tr.tt-round-leader td.tt-round { color: var(--green-dark); font-weight: 700; }
+  table.team-totals-table tr.tt-overall-leader td.tt-total { color: var(--gold); background: var(--navy-dark); }
+  table.team-totals-table tr:last-child td { border-bottom: none; }
+  table.team-totals-table td.tt-team-cell { width: 60px; }
+  table.team-totals-table td.tt-team-cell .team-badge {
+    display: inline-block;
+    font-size: 13px;
+    padding: 4px 10px;
+  }
+
   .day-block { margin-bottom: 16px; }
   .day-header {
     font-size: 15px; font-weight: 700; color: var(--green-dark);
@@ -1280,9 +1372,18 @@
   }
   .match-select-a { border-left: 3px solid #1d4ed8; }
   .match-select-b { border-left: 3px solid #b91c1c; }
+  .match-select-c { border-left: 3px solid #047857; }
+  .match-select-d { border-left: 3px solid #b45309; }
+  .match-select-e { border-left: 3px solid #6d28d9; }
+  .match-select-f { border-left: 3px solid #be185d; }
   .match-select:focus { outline: 2px solid var(--gold); outline-offset: -1px; }
   .match-team-line .amp { color: var(--gray-500); font-weight: 700; font-size: 12px; }
   .vs { font-size: 10px; color: var(--gray-500); font-weight: 700; text-transform: uppercase; }
+  .match-team-line .team-tag {
+    display: inline-block; width: 20px; height: 20px; border-radius: 50%;
+    color: white; font-size: 11px; font-weight: 800; text-align: center;
+    line-height: 20px; flex-shrink: 0; padding: 0;
+  }
   .team-a-tag, .team-b-tag {
     display: inline-block; width: 18px; height: 18px; border-radius: 50%;
     color: white; font-size: 10px; font-weight: 700; text-align: center;
@@ -1296,6 +1397,10 @@
   }
   .match-status.status-a { color: #1d4ed8; }
   .match-status.status-b { color: #b91c1c; }
+  .match-status.status-c { color: #047857; }
+  .match-status.status-d { color: #b45309; }
+  .match-status.status-e { color: #6d28d9; }
+  .match-status.status-f { color: #be185d; }
   .match-status.status-halved { color: var(--gold-dark); }
 
   .team-lb { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
@@ -1305,11 +1410,62 @@
   }
   .team-a-bg { background: #1d4ed8; }
   .team-b-bg { background: #b91c1c; }
+  .team-c-bg { background: #047857; }
+  .team-d-bg { background: #b45309; }
+  .team-e-bg { background: #6d28d9; }
+  .team-f-bg { background: #be185d; }
   .team-lb-lead { box-shadow: 0 0 0 3px var(--gold), 0 4px 10px rgba(0,0,0,0.15); }
   .team-lb-name { font-size: 16px; }
   .team-lb-pts { font-size: 22px; font-weight: 700; }
   .team-lb-summary {
-    font-size: 12px; color: var(--gray-500); text-align: center; margin-top: 4px;
+    font-size: 12px; color: var(--gray-500); text-align: center; margin-top: 8px;
+  }
+  table.team-lb-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 6px;
+    overflow: hidden;
+    margin-top: 6px;
+  }
+  table.team-lb-table th, table.team-lb-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--gray-200);
+    font-size: 14px;
+  }
+  table.team-lb-table th {
+    background: var(--gray-50);
+    color: var(--gray-700);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    font-size: 11px;
+    text-align: right;
+  }
+  table.team-lb-table th.tl-team { text-align: left; }
+  table.team-lb-table td.tl-team { text-align: left; font-weight: 600; }
+  table.team-lb-table td.tl-team .team-badge {
+    display: inline-block; padding: 3px 8px; font-size: 12px; margin-right: 6px;
+  }
+  table.team-lb-table td.tl-num { text-align: right; font-variant-numeric: tabular-nums; }
+  table.team-lb-table td.tl-num.tl-lead {
+    color: var(--gold);
+    background: var(--navy-dark);
+    font-weight: 800;
+  }
+  table.team-lb-table tr:last-child td { border-bottom: none; }
+  table.team-lb-table tr.team-a-row { background: rgba(29, 78, 216, 0.05); }
+  table.team-lb-table tr.team-b-row { background: rgba(185, 28, 28, 0.05); }
+  table.team-lb-table tr.team-c-row { background: rgba(4, 120, 87, 0.05); }
+  table.team-lb-table tr.team-d-row { background: rgba(180, 83, 9, 0.05); }
+  table.team-lb-table tr.team-e-row { background: rgba(109, 40, 217, 0.05); }
+  table.team-lb-table tr.team-f-row { background: rgba(190, 24, 93, 0.05); }
+  /* Play tab — scoring format suffix in the scorecard round title */
+  .scorecard-title-fmt {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--gray-500);
+    margin-left: 6px;
   }
 
   table.leaderboard { border-collapse: collapse; width: 100%; font-size: 13px; margin-top: 6px; }
@@ -1330,6 +1486,10 @@
   }
   .team-tag-a { background: #1d4ed8; }
   .team-tag-b { background: #b91c1c; }
+  .team-tag-c { background: #047857; }
+  .team-tag-d { background: #b45309; }
+  .team-tag-e { background: #6d28d9; }
+  .team-tag-f { background: #be185d; }
 
 
   /* ============ Collapsible sections & rounds ============ */
@@ -1492,12 +1652,58 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  .ts-score-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    line-height: 1;
+  }
   .ts-score {
     font-size: 24px;
     font-weight: 800;
     color: white;
     line-height: 1;
   }
+  .ts-unit {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: rgba(255,255,255,0.75);
+    margin-top: 2px;
+    text-transform: uppercase;
+  }
+  .ts-metrics {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+  }
+  .ts-metric {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    line-height: 1;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  .ts-metric-val {
+    font-size: 22px;
+    font-weight: 800;
+    color: white;
+    line-height: 1;
+  }
+  .ts-metric-unit {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: rgba(255,255,255,0.75);
+    margin-top: 2px;
+    text-transform: uppercase;
+  }
+  .ts-metric-lead .ts-metric-val { color: var(--gold); }
+  .ts-metric-lead { background: rgba(0,0,0,0.25); }
+  .team-scoreboard.multi .ts-metric-val { font-size: 18px; }
+  .team-scoreboard.multi .ts-metric { padding: 2px 4px; }
+  .team-scoreboard.multi .ts-metrics { gap: 6px; }
   .ts-vs {
     display: flex;
     align-items: center;
@@ -1600,6 +1806,9 @@
   body[data-active-round="round3"] #tab-play-strokes .course-section[data-round-slot="round1"],
   body[data-active-round="round3"] #tab-play-strokes .course-section[data-round-slot="round2"],
   body[data-active-round="round3"] #tab-play-strokes .course-section[data-round-slot="round4"] { display: none !important; }
+  body[data-active-round="round4"] #tab-play-strokes .course-section[data-round-slot="round1"],
+  body[data-active-round="round4"] #tab-play-strokes .course-section[data-round-slot="round2"],
+  body[data-active-round="round4"] #tab-play-strokes .course-section[data-round-slot="round3"] { display: none !important; }
   /* Within Play tab: ignore any .collapsed class on course-sections
      (round-chip selector is the sole controller of round visibility here) */
   #tab-play-strokes .course-section.collapsed > *:not(h3) { display: revert !important; }
@@ -1626,7 +1835,7 @@
 <div class="container">
   <header class="app-header">
     <div class="app-header-top">
-      <div class="app-title">Fancourt 2026</div>
+      <div class="app-title">Tour Score</div>
       <div class="app-sync-cluster">
         <span class="sync-dot" id="sync-dot"></span>
         <span id="sync-label">Sync: off</span>
@@ -1647,20 +1856,6 @@
     <div class="help-text" style="margin-top:8px;">Lock the Setup tab to prevent accidental changes during the competition. Match Schedule (Matches tab) and score entry (Play tab) stay editable.</div>
   </section>
 
-  <!-- Scoring format (Setup tab only) -->
-  <section class="step" data-tab="setup" id="scoring-format-section">
-    <h2><span class="step-num">0</span> Scoring format</h2>
-    <div class="count-controls" style="align-items:flex-start;">
-      <label for="scoring-format-select">Format:</label>
-      <select id="scoring-format-select" style="padding:8px 10px;border:1px solid var(--gray-300);border-radius:4px;font-size:14px;background:white;font-family:inherit;min-width:280px;">
-        <option value="betterBall">Better Ball Stableford (match play, best-ball per hole)</option>
-        <option value="combined">Combined Stableford (sum of all team scores)</option>
-        <option value="alliance2">Four-Ball Alliance &mdash; 2 scores to count</option>
-        <option value="alliance3">Four-Ball Alliance &mdash; 3 scores to count</option>
-      </select>
-      <span class="hint" id="scoring-format-hint">Best-ball match play: winner of most holes takes the match.</span>
-    </div>
-  </section>
 
   <!-- STEP 1: Players + Handicaps -->
   <section class="step" data-tab="setup">
@@ -1676,8 +1871,8 @@
 
   <!-- STEP 2: Match Schedule -->
   <section class="step" data-tab="matches">
-    <h2><span class="step-num">2</span> Match schedule (best-ball match play)</h2>
-    <div class="help-text">Editable pairings for the 3 days. Each match compares each pair's best-ball stableford on every hole. Whoever wins the most holes wins the match.</div>
+    <h2><span class="step-num">2</span> Match schedule</h2>
+    <div class="help-text">Pairings for each round. Each round uses its own scoring format (set in Setup &rarr; Course setup).</div>
     <div id="match-schedule-display"></div>
   </section>
 
@@ -1690,7 +1885,7 @@
       <span class="hint">1&ndash;4 rounds. Each round is 18 holes. Stableford totals sum across all active rounds.</span>
     </div>
     <div class="info-box">
-      Round 1 = Fancourt Montagu, Round 2 = Fancourt Outeniqua, Round 3 = Fancourt The Links.
+      Pick each round's course, format (holes played), and scoring format.
       Edit par or stroke index if your printed scorecard differs.
       <strong>SI 1 = hardest hole, SI 18 = easiest.</strong>
     </div>
@@ -1703,6 +1898,12 @@
           <option value="front9">Front 9 only (holes 1&ndash;9)</option>
           <option value="back9">Back 9 only (holes 10&ndash;18)</option>
         </select>
+        <select id="scoring-format-round1" class="scoring-format-select">
+          <option value="betterBall">Better Ball Stableford</option>
+          <option value="combined">Combined Stableford</option>
+          <option value="alliance2">Alliance &mdash; 2 scores</option>
+          <option value="alliance3">Alliance &mdash; 3 scores</option>
+        </select>
       </div>
       <div data-round-slot="round2">
         <label for="course-select-round2">Round 2</label>
@@ -1711,6 +1912,12 @@
           <option value="full">Full round (18 holes)</option>
           <option value="front9">Front 9 only (holes 1&ndash;9)</option>
           <option value="back9">Back 9 only (holes 10&ndash;18)</option>
+        </select>
+        <select id="scoring-format-round2" class="scoring-format-select">
+          <option value="betterBall">Better Ball Stableford</option>
+          <option value="combined">Combined Stableford</option>
+          <option value="alliance2">Alliance &mdash; 2 scores</option>
+          <option value="alliance3">Alliance &mdash; 3 scores</option>
         </select>
       </div>
       <div data-round-slot="round3" class="hidden">
@@ -1721,6 +1928,12 @@
           <option value="front9">Front 9 only (holes 1&ndash;9)</option>
           <option value="back9">Back 9 only (holes 10&ndash;18)</option>
         </select>
+        <select id="scoring-format-round3" class="scoring-format-select">
+          <option value="betterBall">Better Ball Stableford</option>
+          <option value="combined">Combined Stableford</option>
+          <option value="alliance2">Alliance &mdash; 2 scores</option>
+          <option value="alliance3">Alliance &mdash; 3 scores</option>
+        </select>
       </div>
       <div data-round-slot="round4" class="hidden">
         <label for="course-select-round4">Round 4</label>
@@ -1729,6 +1942,12 @@
           <option value="full">Full round (18 holes)</option>
           <option value="front9">Front 9 only (holes 1&ndash;9)</option>
           <option value="back9">Back 9 only (holes 10&ndash;18)</option>
+        </select>
+        <select id="scoring-format-round4" class="scoring-format-select">
+          <option value="betterBall">Better Ball Stableford</option>
+          <option value="combined">Combined Stableford</option>
+          <option value="alliance2">Alliance &mdash; 2 scores</option>
+          <option value="alliance3">Alliance &mdash; 3 scores</option>
         </select>
       </div>
     </div>
@@ -1781,7 +2000,7 @@
   <section class="step" data-tab="standings">
     <h2><span class="step-num">5</span> Leaderboards</h2>
     <div class="help-text">Both leaderboards update live as scores are entered.</div>
-    <h3 style="color: var(--green-dark); font-size: 15px; margin-top: 14px;">Team competition (match play points)</h3>
+    <h3 style="color: var(--green-dark); font-size: 15px; margin-top: 14px;">Team competition</h3>
     <div id="team-leaderboard"></div>
     <h3 style="color: var(--green-dark); font-size: 15px; margin-top: 16px;">Individual competition (total stableford)</h3>
     <div id="individual-leaderboard"></div>
@@ -1917,25 +2136,92 @@ function cloneSchedule(sched) { return JSON.parse(JSON.stringify(sched)); }
 // Rebuilding uses the current player + team assignments; teamB stays empty
 // so the "singleTeam" branch in updateMatchResultRows treats each row as a
 // team-total scorecard rather than an A-vs-B match.
-function generateAllianceSchedule() {
-  const rc = Math.max(MIN_ROUNDS, Math.min(MAX_ROUNDS, state.roundCount || DEFAULT_ROUNDS));
+// Build the round's list of matches for its OWN scoring format.
+// - Team-total rounds (Combined / Alliance): one match per team (split into
+//   4-balls if the team has more than 4 players), teamB = [].
+// - Better Ball rounds: pair Team A players against Team B players 2-vs-2
+//   into 4-balls. If a legacy DEFAULT_MATCH_SCHEDULE row for this round
+//   already fits (all indices in range and both sides populated), keep that
+//   so users' custom pairings survive.
+function generateMatchesForRound(roundIdx) {
+  const course = COURSES[roundIdx];
+  if (!course) return [{ teamA: [], teamB: [] }];
+  const fmt = currentScoringFormat(course.id);
   const teams = teamsInPlay();
-  const schedule = [];
-  for (let r = 0; r < rc; r++) {
+  if (isTeamTotalFormat(fmt)) {
     const matches = [];
     teams.forEach(t => {
       const pis = indicesOfTeam(t);
       if (!pis.length) return;
-      // Split large teams into 4-balls, keeping the original player order.
       for (let i = 0; i < pis.length; i += 4) {
         matches.push({ teamA: pis.slice(i, i + 4), teamB: [] });
       }
     });
-    // Fallback: if no teams (empty roster), keep a single empty match to preserve shape.
     if (!matches.length) matches.push({ teamA: [], teamB: [] });
-    schedule.push({ day: r + 1, roundIdx: r, matches: matches });
+    return matches;
+  }
+  // Better Ball: use the classic DEFAULT_MATCH_SCHEDULE template if it fits,
+  // otherwise auto-generate 2-vs-2 4-balls that cover every team in play.
+  const maxPi = state.players.length - 1;
+  const templateDay = DEFAULT_MATCH_SCHEDULE[roundIdx];
+  // Only use the template as a shortcut for the 2-team default (A vs B).
+  if (templateDay && Array.isArray(templateDay.matches) && teams.length === 2) {
+    const valid = templateDay.matches.every(m =>
+      Array.isArray(m.teamA) && Array.isArray(m.teamB) &&
+      m.teamA.length && m.teamB.length &&
+      m.teamA.concat(m.teamB).every(pi => pi >= 0 && pi <= maxPi)
+    );
+    if (valid) return cloneSchedule(templateDay.matches);
+  }
+  // Auto-pair teams two at a time (A vs B, C vs D, E vs F). Inside each
+  // pairing, split into as many 2-vs-2 4-balls as the smaller team can fill,
+  // so a 16-player 4-team roster yields 4 matches (A[0,1]vB[0,1], A[2,3]vB[2,3],
+  // C[0,1]vD[0,1], C[2,3]vD[2,3]).
+  const matches = [];
+  const chunkSize = 2;
+  for (let ti = 0; ti + 1 < teams.length; ti += 2) {
+    const aPis = indicesOfTeam(teams[ti]);
+    const bPis = indicesOfTeam(teams[ti + 1]);
+    if (!aPis.length && !bPis.length) continue;
+    const nMatches = Math.max(1, Math.ceil(Math.max(aPis.length, bPis.length) / chunkSize));
+    for (let i = 0; i < nMatches; i++) {
+      const a = aPis.slice(i * chunkSize, i * chunkSize + chunkSize);
+      const b = bPis.slice(i * chunkSize, i * chunkSize + chunkSize);
+      if (a.length || b.length) matches.push({ teamA: a, teamB: b });
+    }
+  }
+  // If an odd team is left over (e.g. 3 teams in play), give it a match with
+  // itself so those players still appear on the Play tab; the "singleTeam"
+  // detection will render it as a team total row rather than A-vs-B garbage.
+  if (teams.length % 2 === 1) {
+    const leftover = teams[teams.length - 1];
+    const pis = indicesOfTeam(leftover);
+    for (let i = 0; i < pis.length; i += 4) {
+      matches.push({ teamA: pis.slice(i, i + 4), teamB: [] });
+    }
+  }
+  if (!matches.length) matches.push({ teamA: teamAIndices(), teamB: teamBIndices() });
+  return matches;
+}
+
+function generateAllianceSchedule() {
+  // Kept for backward-compat: builds a full schedule from per-round rules.
+  const rc = Math.max(MIN_ROUNDS, Math.min(MAX_ROUNDS, state.roundCount || DEFAULT_ROUNDS));
+  const schedule = [];
+  for (let r = 0; r < rc; r++) {
+    schedule.push({ day: r + 1, roundIdx: r, matches: generateMatchesForRound(r) });
   }
   return schedule;
+}
+
+// Replace only ONE round's matches in the schedule — preserves the other
+// rounds' custom pairings. Used when a single round's scoring format changes.
+function rebuildMatchesForRound(roundIdx) {
+  if (!Array.isArray(state.matchSchedule)) state.matchSchedule = generateAllianceSchedule();
+  const day = state.matchSchedule.find(d => d.roundIdx === roundIdx);
+  const newMatches = generateMatchesForRound(roundIdx);
+  if (day) day.matches = newMatches;
+  else state.matchSchedule.push({ day: roundIdx + 1, roundIdx: roundIdx, matches: newMatches });
 }
 
 function validateMatchSchedule() {
@@ -2196,11 +2482,35 @@ const SCORING_FORMAT_LABELS = {
   alliance2:  "Four-Ball Alliance — 2 scores to count",
   alliance3:  "Four-Ball Alliance — 3 scores to count"
 };
-function currentScoringFormat() {
-  const f = state && state.scoringFormat;
-  return SCORING_FORMATS.indexOf(f) >= 0 ? f : "betterBall";
+// Per-round scoring format. Backward-compatible with the older single-format
+// state (state.scoringFormat) — if the per-round map isn't populated, fall
+// back to the legacy single value, then finally to Better Ball.
+function currentScoringFormat(courseId) {
+  if (courseId && state && state.scoringFormats && state.scoringFormats[courseId] &&
+      SCORING_FORMATS.indexOf(state.scoringFormats[courseId]) >= 0) {
+    return state.scoringFormats[courseId];
+  }
+  const legacy = state && state.scoringFormat;
+  if (SCORING_FORMATS.indexOf(legacy) >= 0) return legacy;
+  // No courseId given — use round1's format (or Better Ball as ultimate default).
+  if (state && state.scoringFormats && SCORING_FORMATS.indexOf(state.scoringFormats.round1) >= 0) {
+    return state.scoringFormats.round1;
+  }
+  return "betterBall";
 }
-function isMatchPlayFormat() { return currentScoringFormat() === "betterBall"; }
+function isMatchPlayFormat(courseId) { return currentScoringFormat(courseId) === "betterBall"; }
+function makeDefaultScoringFormats() {
+  const map = {};
+  COURSES.forEach(c => { map[c.id] = "betterBall"; });
+  return map;
+}
+function anyTeamTotalFormat() {
+  return COURSES.some(c => isTeamTotalFormat(currentScoringFormat(c.id)));
+}
+function allSameScoringFormat() {
+  const first = currentScoringFormat(COURSES[0] && COURSES[0].id);
+  return COURSES.every(c => currentScoringFormat(c.id) === first) ? first : null;
+}
 
 function freshState() {
   return {
@@ -2215,6 +2525,7 @@ function freshState() {
     setupLocked: false,
     roundFormat: makeDefaultRoundFormat(),
     scoringFormat: "betterBall",
+    scoringFormats: makeDefaultScoringFormats(),
     playerTeams: defaultTeamAssignments(DEFAULT_PLAYERS.length),
     pairs: null,
     oddsEvens: null,
@@ -2249,6 +2560,13 @@ for (let _i = 0; _i < state.players.length; _i++) {
 }
 // Reshape schedule to fit current player+round counts (in case they differ from when saved)
 conformScheduleToCounts();
+// If we're in a team-total format, replace the schedule with a team-grouped
+// alliance schedule (one 4-ball per team, split into 4-balls if larger). This
+// runs at boot so a mis-aligned or legacy schedule (from Better Ball defaults
+// or from an earlier team assignment) is corrected against the current teams.
+if (anyTeamTotalFormat()) {
+  state.matchSchedule = generateAllianceSchedule();
+}
 // Backfill / repair handicaps. Migrate old single-array shape to per-course.
 if (Array.isArray(state.handicaps) && !state.handicapsByCourse) {
   state.handicapsByCourse = { links: state.handicaps.slice(), bay: state.handicaps.slice() };
@@ -2277,6 +2595,19 @@ COURSES.forEach(c => {
   if (!info.name) {
     const entry = findCatalogEntry(info.catalogKey);
     info.name = entry ? entry.name : (c.name || c.id);
+  }
+  // Repair pass: if the stored round format is Full but the saved info has
+  // blank par/SI in either 9 (leftover from a prior Front 9 / Back 9 session),
+  // restore those holes from the catalog so they don't render as inactive.
+  const fmt = state.roundFormat && state.roundFormat[c.id] || "full";
+  if (fmt === "full") {
+    const catalog = findCatalogEntry(info.catalogKey);
+    if (catalog && Array.isArray(catalog.par) && Array.isArray(catalog.si)) {
+      for (let h = 0; h < HOLES; h++) {
+        if ((info.par[h] === "" || info.par[h] == null) && catalog.par[h] != null) info.par[h] = catalog.par[h];
+        if ((info.si[h]  === "" || info.si[h]  == null) && catalog.si[h]  != null) info.si[h]  = catalog.si[h];
+      }
+    }
   }
 });
 
@@ -2649,7 +2980,7 @@ function setPlayerTeam(pi, team) {
   if (!Array.isArray(state.playerTeams)) state.playerTeams = defaultTeamAssignments(state.players.length);
   state.playerTeams[pi] = team;
   // Team-total formats: keep the schedule aligned so each 4-ball is one team.
-  if (isTeamTotalFormat()) {
+  if (anyTeamTotalFormat()) {
     state.matchSchedule = generateAllianceSchedule();
   }
   saveState();
@@ -2700,7 +3031,7 @@ function setPlayerCount(newCount) {
   state.pairs = null;
   state.oddsEvens = null;
   state.revealed = false;
-  if (isTeamTotalFormat()) {
+  if (anyTeamTotalFormat()) {
     state.matchSchedule = generateAllianceSchedule();
   } else {
     conformScheduleToCounts();
@@ -2785,7 +3116,10 @@ function refreshCourseTitles() {
     const setupT = document.getElementById("course-setup-title-" + c.id);
     if (setupT) setupT.textContent = name;
     const scoreT = document.getElementById("scorecard-title-" + c.id);
-    if (scoreT) scoreT.textContent = name + " — holes 1–18";
+    if (scoreT) {
+      const fmtLbl = SCORING_FORMAT_LABELS[currentScoringFormat(c.id)] || "";
+      scoreT.innerHTML = name + ' <span class="scorecard-title-fmt">— ' + fmtLbl + '</span>';
+    }
     const sel = document.getElementById("course-select-" + c.id);
     if (sel && info && info.catalogKey) sel.value = info.catalogKey;
   });
@@ -2818,51 +3152,56 @@ function renderCourseSelectors() {
       fmtSel.value = cur;
       fmtSel.setAttribute("data-format", cur);
     }
+
+    // Per-round scoring format selector (Better Ball / Combined / Alliance)
+    const scSel = document.getElementById("scoring-format-" + c.id);
+    if (scSel) {
+      if (!scSel._bound) {
+        scSel.addEventListener("change", () => applyScoringFormatForRound(c.id, scSel.value));
+        scSel._bound = true;
+      }
+      const cur = currentScoringFormat(c.id);
+      scSel.value = cur;
+      scSel.setAttribute("data-format", cur);
+    }
   });
 }
 
-// ---------- Scoring format selector ----------
-function renderScoringFormatSelector() {
-  const sel = document.getElementById("scoring-format-select");
-  if (!sel) return;
-  if (!sel._bound) {
-    sel.addEventListener("change", () => applyScoringFormat(sel.value));
-    sel._bound = true;
-  }
-  sel.value = currentScoringFormat();
-  updateScoringFormatHint();
-}
-function updateScoringFormatHint() {
-  const hint = document.getElementById("scoring-format-hint");
-  if (!hint) return;
-  const map = {
-    betterBall: "Match play. Best of each pair's stableford wins each hole. Winner of most holes wins the match.",
-    combined:   "Sum of all team players' stableford points per hole. Higher team total wins.",
-    alliance2:  "Top 2 of 4 team players' stableford per hole. Higher team total wins.",
-    alliance3:  "Top 3 of 4 team players' stableford per hole. Higher team total wins."
-  };
-  hint.textContent = map[currentScoringFormat()] || "";
-}
+// ---------- Scoring format (per round) ----------
+// A "team-only" format runs as a single-team scorecard with no A-vs-B match
+// (used on the Matches / Play tabs to switch to the team totals view).
+// Combined Stableford is NOT team-only — it still runs as a match between
+// two selected pairs; only the per-hole aggregation differs (sum vs. max).
 function isTeamTotalFormat(fmt) {
-  fmt = fmt || currentScoringFormat();
-  return fmt === "alliance2" || fmt === "alliance3" || fmt === "combined";
+  if (!fmt) fmt = currentScoringFormat();
+  return fmt === "alliance2" || fmt === "alliance3";
 }
-function applyScoringFormat(fmt) {
+// No-op stub — the per-round format is now bound inside renderCourseSelectors
+// (see the scoring-format-<id> select there). Kept so any older callsites
+// don't blow up.
+function renderScoringFormatSelector() { /* per-round selectors handled in renderCourseSelectors */ }
+function applyScoringFormatForRound(courseId, fmt) {
   if (SCORING_FORMATS.indexOf(fmt) < 0) fmt = "betterBall";
-  const previous = state.scoringFormat || "betterBall";
-  state.scoringFormat = fmt;
-  // Auto-regenerate the match schedule when switching INTO a team-total
-  // format so each 4-ball is one team (Better Ball match play keeps whatever
-  // custom pairings the user has built).
-  if (isTeamTotalFormat(fmt) && !isTeamTotalFormat(previous)) {
-    state.matchSchedule = generateAllianceSchedule();
-  }
+  if (!state.scoringFormats || typeof state.scoringFormats !== "object") state.scoringFormats = makeDefaultScoringFormats();
+  state.scoringFormats[courseId] = fmt;
+  // Rebuild ONLY this round's matches so custom pairings on other rounds
+  // survive. A better-ball round gets A-vs-B pairings; a team-total round
+  // gets one 4-ball per team.
+  const roundIdx = COURSES.findIndex(c => c.id === courseId);
+  if (roundIdx >= 0) rebuildMatchesForRound(roundIdx);
   saveState();
-  updateScoringFormatHint();
+  if (typeof refreshCourseTitles === "function") refreshCourseTitles();
   if (typeof renderScorecards === "function") renderScorecards();
   refreshAllStablefordDisplays();
   if (typeof renderMatchSchedule === "function") renderMatchSchedule();
   if (typeof refreshLeaderboards === "function") refreshLeaderboards();
+  // Reflect visual state on the select
+  const sel = document.getElementById("scoring-format-" + courseId);
+  if (sel) sel.setAttribute("data-format", fmt);
+}
+// Legacy single-format applier — kept for backward-compat; applies to all rounds.
+function applyScoringFormat(fmt) {
+  COURSES.forEach(c => applyScoringFormatForRound(c.id, fmt));
 }
 
 // Zero out (blank) par + stroke index for the holes not being played when the
@@ -2874,12 +3213,21 @@ function applyRoundFormat(courseId, fmt) {
   state.roundFormat[courseId] = fmt;
   const info = state.courseInfo[courseId];
   if (info && Array.isArray(info.par) && Array.isArray(info.si)) {
+    // For Full round, restore any blanked par/SI values from the catalog entry
+    // (so switching back from Front 9 / Back 9 doesn't leave the "other" 9 dead).
+    const catalog = info.catalogKey ? findCatalogEntry(info.catalogKey) : null;
     for (let h = 0; h < HOLES; h++) {
       const isFront = h < 9;
-      const blank = (fmt === "front9" && !isFront) || (fmt === "back9" && isFront);
-      if (blank) {
+      const shouldBlank = (fmt === "front9" && !isFront) || (fmt === "back9" && isFront);
+      if (shouldBlank) {
         info.par[h] = "";
         info.si[h] = "";
+      } else if (fmt === "full" && catalog && Array.isArray(catalog.par) && Array.isArray(catalog.si)) {
+        // Only restore holes that are currently blank so any manual edits are preserved.
+        const parBlank = info.par[h] === "" || info.par[h] == null;
+        const siBlank = info.si[h] === "" || info.si[h] == null;
+        if (parBlank && catalog.par[h] != null) info.par[h] = catalog.par[h];
+        if (siBlank && catalog.si[h] != null) info.si[h] = catalog.si[h];
       }
     }
   }
@@ -3145,9 +3493,12 @@ function updateMatchResultRows() {
     const roundIdx = COURSES.indexOf(course);
     const scheduleDay = (state.matchSchedule || DEFAULT_MATCH_SCHEDULE).find(d => d.roundIdx === roundIdx);
     if (!scheduleDay) return;
-    const fmt = currentScoringFormat();
+    const fmt = currentScoringFormat(course.id);
     const matchPlay = fmt === "betterBall";
     scheduleDay.matches.forEach((m, mi) => {
+      // Actual team letters for this match's two sides (may be C, D, etc.)
+      const teamAletter = (m.teamA && m.teamA.length) ? teamOfPlayer(m.teamA[0]) : "A";
+      const teamBletter = (m.teamB && m.teamB.length) ? teamOfPlayer(m.teamB[0]) : "B";
       // If everyone in this match roster is on the same team, an A-vs-B
       // "match result" is meaningless (there is no opponent). Show the row
       // as a team total instead: cumulative team-hole points, per hole,
@@ -3178,7 +3529,27 @@ function updateMatchResultRows() {
       // Single-team running total (all match players as one team)
       let stRunTot = 0, stTot9 = [0, 0], stHoles9 = [0, 0];
       const allMatchPis = m.teamA.concat(m.teamB);
-      for (let h = 0; h < HOLES; h++) {
+      // Determine play order: if the back 9 has more scored holes than the
+      // front 9, this group started on 10 — iterate back-first so the running
+      // tally in each cell reflects the actual match state at that point in
+      // play (rather than showing the front 9 as if it began the round).
+      let frontScored = 0, backScored = 0;
+      for (let h = 0; h < 9; h++) {
+        if (allMatchPis.some(pi => state.scores[course.id][pi][h] !== "" && state.scores[course.id][pi][h] != null)) frontScored++;
+      }
+      for (let h = 9; h < HOLES; h++) {
+        if (allMatchPis.some(pi => state.scores[course.id][pi][h] !== "" && state.scores[course.id][pi][h] != null)) backScored++;
+      }
+      const backFirst = backScored > frontScored;
+      const playOrder = [];
+      if (backFirst) {
+        for (let h = 9; h < HOLES; h++) playOrder.push(h);
+        for (let h = 0; h < 9; h++) playOrder.push(h);
+      } else {
+        for (let h = 0; h < HOLES; h++) playOrder.push(h);
+      }
+      for (let __i = 0; __i < playOrder.length; __i++) {
+        const h = playOrder[__i];
         const cell = document.getElementById("matchresult-" + course.id + "-" + mi + "-" + h);
         const nineClass = h < 9 ? "hole-front" : "hole-back";
         const nine = h < 9 ? 0 : 1;
@@ -3214,14 +3585,14 @@ function updateMatchResultRows() {
           if (matchPlay) {
             const lead = aWins - bWins;
             if (lead === 0) { text = "AS"; cls += " mrc-halved"; }
-            else if (lead > 0) { text = "A " + lead; cls += " mrc-a-up"; }
-            else { text = "B " + Math.abs(lead); cls += " mrc-b-up"; }
+            else if (lead > 0) { text = teamAletter + " " + lead; cls += " mrc-team-" + teamAletter.toLowerCase(); }
+            else { text = teamBletter + " " + Math.abs(lead); cls += " mrc-team-" + teamBletter.toLowerCase(); }
           } else {
             // Cumulative point differential (rounded to 1 dp)
             const diff = Math.round((aRunTot - bRunTot) * 10) / 10;
             if (diff === 0) { text = "AS"; cls += " mrc-halved"; }
-            else if (diff > 0) { text = "A +" + diff; cls += " mrc-a-up"; }
-            else { text = "B +" + Math.abs(diff); cls += " mrc-b-up"; }
+            else if (diff > 0) { text = teamAletter + " +" + diff; cls += " mrc-team-" + teamAletter.toLowerCase(); }
+            else { text = teamBletter + " +" + Math.abs(diff); cls += " mrc-team-" + teamBletter.toLowerCase(); }
           }
         }
         if (cell) { cell.textContent = text; cell.className = cls; }
@@ -3243,14 +3614,14 @@ function updateMatchResultRows() {
         if (!matchPlay) {
           const diff9 = Math.round((aTot9[nine] - bTot9[nine]) * 10) / 10;
           if (diff9 === 0) { text = "AS"; cls += " mrc-halved"; }
-          else if (diff9 > 0) { text = "A +" + diff9; cls += " mrc-a-up"; }
-          else { text = "B +" + Math.abs(diff9); cls += " mrc-b-up"; }
+          else if (diff9 > 0) { text = teamAletter + " +" + diff9; cls += " mrc-team-" + teamAletter.toLowerCase(); }
+          else { text = teamBletter + " +" + Math.abs(diff9); cls += " mrc-team-" + teamBletter.toLowerCase(); }
           el.textContent = text; el.className = cls; return;
         }
           const lead9 = aWins9[nine] - bWins9[nine];
           if (lead9 === 0) { text = "AS"; cls += " mrc-halved"; }
-          else if (lead9 > 0) { text = "A " + lead9; cls += " mrc-a-up"; }
-          else { text = "B " + Math.abs(lead9); cls += " mrc-b-up"; }
+          else if (lead9 > 0) { text = teamAletter + " " + lead9; cls += " mrc-team-" + teamAletter.toLowerCase(); }
+          else { text = teamBletter + " " + Math.abs(lead9); cls += " mrc-team-" + teamBletter.toLowerCase(); }
         }
         el.textContent = text;
         el.className = cls;
@@ -3286,8 +3657,8 @@ function updateMatchResultRows() {
         }
         let totalCls = "total-cell match-result-total";
         if (status && status.holesPlayed > 0) {
-          if (status.aPoints > status.bPoints) totalCls += " mrc-a-up";
-          else if (status.bPoints > status.aPoints) totalCls += " mrc-b-up";
+          if (status.aPoints > status.bPoints) totalCls += " mrc-team-" + teamAletter.toLowerCase();
+          else if (status.bPoints > status.aPoints) totalCls += " mrc-team-" + teamBletter.toLowerCase();
           else totalCls += " mrc-halved";
         }
         totalTd.className = totalCls;
@@ -4215,6 +4586,14 @@ function applyRemoteState(remote) {
     if (["full", "front9", "back9"].indexOf(state.roundFormat[c.id]) < 0) state.roundFormat[c.id] = "full";
   });
   if (SCORING_FORMATS.indexOf(state.scoringFormat) < 0) state.scoringFormat = "betterBall";
+  // Per-round scoring formats: seed from legacy state.scoringFormat if the
+  // per-round map is missing or partial.
+  if (!state.scoringFormats || typeof state.scoringFormats !== "object") state.scoringFormats = {};
+  COURSES.forEach(c => {
+    if (SCORING_FORMATS.indexOf(state.scoringFormats[c.id]) < 0) {
+      state.scoringFormats[c.id] = state.scoringFormat || "betterBall";
+    }
+  });
   if (!Array.isArray(state.playerTeams) || state.playerTeams.length !== state.players.length) {
     state.playerTeams = defaultTeamAssignments(state.players.length);
   }
@@ -4222,6 +4601,9 @@ function applyRemoteState(remote) {
     if (TEAMS.indexOf(state.playerTeams[i]) < 0) state.playerTeams[i] = (i < Math.ceil(state.players.length / 2)) ? "A" : "B";
   }
   conformScheduleToCounts();
+  if (anyTeamTotalFormat()) {
+    state.matchSchedule = generateAllianceSchedule();
+  }
   if (!state.handicapsByCourse) state.handicapsByCourse = makeHandicapsByCourse(state.players.length);
   COURSES.forEach(c => {
     if (!Array.isArray(state.handicapsByCourse[c.id])) state.handicapsByCourse[c.id] = Array(state.players.length).fill(0);
@@ -4400,7 +4782,7 @@ function bootSync() {
 // Team's stableford points on a hole, per the currently-selected scoring format.
 // betterBall = max; combined = sum; alliance2 = top 2 sum; alliance3 = top 3 sum.
 function teamHolePoints(playerIndices, courseId, hole, format) {
-  const fmt = format || currentScoringFormat();
+  const fmt = format || currentScoringFormat(courseId);
   const pts = playerIndices.map(pi => playerHoleStableford(pi, courseId, hole));
   if (fmt === "betterBall") return pts.reduce((a, b) => Math.max(a, b), 0);
   const sorted = pts.slice().sort((a, b) => b - a);
@@ -4417,8 +4799,12 @@ function computeMatchStatus(match, roundIdx) {
   const course = COURSES[roundIdx];
   if (!course) return null;
   const courseId = course.id;
-  const fmt = currentScoringFormat();
+  const fmt = currentScoringFormat(courseId);
   const matchPlay = (fmt === "betterBall");
+  // Team letters — derived from the actual player assignments, not fixed A/B.
+  const teamAletter = (match.teamA && match.teamA.length) ? teamOfPlayer(match.teamA[0]) : "A";
+  const teamBletter = (match.teamB && match.teamB.length) ? teamOfPlayer(match.teamB[0]) : "B";
+  const AL = teamAletter, BL = teamBletter;
 
   // Compute how many ACTIVE holes total & how many played
   let activeHoles = 0;
@@ -4452,26 +4838,26 @@ function computeMatchStatus(match, roundIdx) {
       status = "Not started";
     } else if (Math.abs(lead) > holesLeft && holesLeft > 0) {
       const upBy = Math.abs(lead);
-      status = (lead > 0 ? "A wins " : "B wins ") + upBy + "&" + holesLeft;
+      status = (lead > 0 ? AL + " wins " : BL + " wins ") + upBy + "&" + holesLeft;
       complete = true;
       if (lead > 0) aPoints = 1; else bPoints = 1;
     } else if (holesPlayed === HOLES || (activeHoles > 0 && holesPlayed === activeHoles)) {
       if (lead === 0) { status = "Halved"; complete = true; aPoints = 0.5; bPoints = 0.5; }
-      else if (lead > 0) { status = "A wins " + lead + " up"; complete = true; aPoints = 1; }
-      else { status = "B wins " + Math.abs(lead) + " up"; complete = true; bPoints = 1; }
+      else if (lead > 0) { status = AL + " wins " + lead + " up"; complete = true; aPoints = 1; }
+      else { status = BL + " wins " + Math.abs(lead) + " up"; complete = true; bPoints = 1; }
     } else {
       provisional = true;
       if (lead === 0) { status = "AS thru " + holesPlayed; aPoints = 0.5; bPoints = 0.5; }
-      else if (lead > 0) { status = "A " + lead + " UP thru " + holesPlayed; aPoints = 1; }
-      else { status = "B " + Math.abs(lead) + " UP thru " + holesPlayed; bPoints = 1; }
+      else if (lead > 0) { status = AL + " " + lead + " UP thru " + holesPlayed; aPoints = 1; }
+      else { status = BL + " " + Math.abs(lead) + " UP thru " + holesPlayed; bPoints = 1; }
     }
     if (isRoundCompleted(courseId) && !complete) {
       complete = true;
       provisional = false;
       if (holesPlayed === 0) { status = "No score (final)"; aPoints = 0; bPoints = 0; }
       else if (lead === 0) status = "Halved thru " + holesPlayed + " (final)";
-      else if (lead > 0)   status = "A wins " + lead + " up thru " + holesPlayed + " (final)";
-      else                 status = "B wins " + Math.abs(lead) + " up thru " + holesPlayed + " (final)";
+      else if (lead > 0)   status = AL + " wins " + lead + " up thru " + holesPlayed + " (final)";
+      else                 status = BL + " wins " + Math.abs(lead) + " up thru " + holesPlayed + " (final)";
     }
   } else {
     // ----- Combined / Alliance formats: cumulative points decide the match -----
@@ -4484,35 +4870,45 @@ function computeMatchStatus(match, roundIdx) {
       status = "Not started";
     } else if (holesPlayed === activeHoles) {
       if (diff === 0) { status = "Tied " + aTot + "–" + bTot; complete = true; aPoints = 0.5; bPoints = 0.5; }
-      else if (diff > 0) { status = "A wins " + aTot + "–" + bTot; complete = true; aPoints = 1; }
-      else { status = "B wins " + bTot + "–" + aTot; complete = true; bPoints = 1; }
+      else if (diff > 0) { status = AL + " wins " + aTot + "–" + bTot; complete = true; aPoints = 1; }
+      else { status = BL + " wins " + bTot + "–" + aTot; complete = true; bPoints = 1; }
     } else {
       provisional = true;
       if (diff === 0) { status = "AS " + aTot + "–" + bTot + " thru " + holesPlayed; aPoints = 0.5; bPoints = 0.5; }
-      else if (diff > 0) { status = "A +" + roundDiff + " thru " + holesPlayed; aPoints = 1; }
-      else { status = "B +" + Math.abs(roundDiff) + " thru " + holesPlayed; bPoints = 1; }
+      else if (diff > 0) { status = AL + " +" + roundDiff + " thru " + holesPlayed; aPoints = 1; }
+      else { status = BL + " +" + Math.abs(roundDiff) + " thru " + holesPlayed; bPoints = 1; }
     }
     if (isRoundCompleted(courseId) && !complete) {
       complete = true; provisional = false;
       if (holesPlayed === 0) { status = "No score (final)"; aPoints = 0; bPoints = 0; }
       else if (diff === 0) status = "Tied " + aTot + "–" + bTot + " (final)";
-      else if (diff > 0)   status = "A wins " + aTot + "–" + bTot + " (final)";
-      else                 status = "B wins " + bTot + "–" + aTot + " (final)";
+      else if (diff > 0)   status = AL + " wins " + aTot + "–" + bTot + " (final)";
+      else                 status = BL + " wins " + bTot + "–" + aTot + " (final)";
     }
   }
-  return { aWins, bWins, halved, holesPlayed, holesLeft, lead, status, complete, provisional, aPoints, bPoints, aTotal, bTotal, matchPlay };
+  return { aWins, bWins, halved, holesPlayed, holesLeft, lead, status, complete, provisional, aPoints, bPoints, aTotal, bTotal, matchPlay, teamAletter, teamBletter };
 }
 
 function makeMatchSelect(dayIdx, matchIdx, team, slot, currentPi) {
   const sel = document.createElement("select");
-  sel.className = "match-select match-select-" + team.toLowerCase();
-  const indices = team === "A" ? teamAIndices() : teamBIndices();
-  indices.forEach(pi => {
-    const opt = document.createElement("option");
-    opt.value = String(pi);
-    opt.textContent = displayName(pi);
-    if (pi === currentPi) opt.selected = true;
-    sel.appendChild(opt);
+  // Colour the select's left border to the ACTUAL team the currently-selected
+  // player belongs to (rather than the hardcoded slot letter), so 3+ team
+  // pairings look right visually.
+  const currentTeamLetter = (currentPi != null) ? teamOfPlayer(currentPi) : team;
+  sel.className = "match-select match-select-" + currentTeamLetter.toLowerCase();
+  // Include ALL players, grouped by team, so any team can be paired against
+  // any other team on the Matches tab.
+  teamsInPlay().forEach(t => {
+    const group = document.createElement("optgroup");
+    group.label = "Team " + t;
+    indicesOfTeam(t).forEach(pi => {
+      const opt = document.createElement("option");
+      opt.value = String(pi);
+      opt.textContent = displayName(pi);
+      if (pi === currentPi) opt.selected = true;
+      group.appendChild(opt);
+    });
+    if (group.childNodes.length) sel.appendChild(group);
   });
   sel.addEventListener("change", () => {
     handleMatchPairChange(dayIdx, matchIdx, team, slot, parseInt(sel.value));
@@ -4550,25 +4946,62 @@ function renderMatchSchedule() {
   const focusedId = focused && focused.id ? focused.id : null;
 
   c.innerHTML = "";
+
+  // Dispatch per-round: better-ball rounds get the editable A-vs-B match
+  // cards; team-total rounds get the team-totals table.
   const schedule = state.matchSchedule || DEFAULT_MATCH_SCHEDULE;
+  const teams = teamsInPlay();
+
+  // Precompute per-round + overall team-hole point totals for team-total
+  // rounds (used by renderTeamTotalsDay). Zero for match-play rounds.
+  const ptsByRound = {}, overall = {};
+  teams.forEach(t => { overall[t] = 0; });
+  getActiveCourses().forEach(course => {
+    const fmtR = currentScoringFormat(course.id);
+    ptsByRound[course.id] = {};
+    if (isTeamTotalFormat(fmtR)) {
+      teams.forEach(t => {
+        const pis = indicesOfTeam(t);
+        let total = 0;
+        for (let h = 0; h < HOLES; h++) {
+          if (!isHoleActive(course.id, h)) continue;
+          total += teamHolePoints(pis, course.id, h, fmtR);
+        }
+        ptsByRound[course.id][t] = total;
+        overall[t] += total;
+      });
+    }
+  });
+  const leaderOverall = teams.reduce((best, t) => (best == null || overall[t] > overall[best] ? t : best), null);
+
   schedule.forEach((day, dayIdx) => {
     const course = COURSES[day.roundIdx];
+    if (!course) return;
+    const fmt = currentScoringFormat(course.id);
     const courseName = (state.courseInfo[course.id] && state.courseInfo[course.id].name) || course.name;
+    if (isTeamTotalFormat(fmt)) {
+      renderTeamTotalsDay(c, day, course, fmt, teams, ptsByRound, overall, leaderOverall);
+      return;
+    }
+    // Better Ball: editable A-vs-B match cards for this day
     const dayWrap = document.createElement("div");
     dayWrap.className = "day-block";
-    dayWrap.innerHTML = '<div class="day-header">Day ' + day.day + " &middot; " + courseName + '</div>';
+    dayWrap.innerHTML = '<div class="day-header">Day ' + day.day + " &middot; " + courseName +
+      ' <span class="alliance-format-teams">' + (SCORING_FORMAT_LABELS[fmt] || "") + '</span></div>';
     day.matches.forEach((m, mi) => {
       const status = computeMatchStatus(m, day.roundIdx);
       const card = document.createElement("div");
       card.className = "match-card" + (status && status.complete ? " match-done" : "");
       let statusClass = "match-status";
+      const aLetterMS = status ? status.teamAletter : "A";
+      const bLetterMS = status ? status.teamBletter : "B";
       if (status && status.complete) {
-        if (status.aPoints > status.bPoints) statusClass += " status-a";
-        else if (status.bPoints > status.aPoints) statusClass += " status-b";
+        if (status.aPoints > status.bPoints) statusClass += " status-" + aLetterMS.toLowerCase();
+        else if (status.bPoints > status.aPoints) statusClass += " status-" + bLetterMS.toLowerCase();
         else statusClass += " status-halved";
       } else if (status && status.provisional) {
-        if (status.aPoints > status.bPoints) statusClass += " status-a";
-        else if (status.bPoints > status.aPoints) statusClass += " status-b";
+        if (status.aPoints > status.bPoints) statusClass += " status-" + aLetterMS.toLowerCase();
+        else if (status.bPoints > status.aPoints) statusClass += " status-" + bLetterMS.toLowerCase();
       }
 
       // Label
@@ -4580,12 +5013,13 @@ function renderMatchSchedule() {
       const teamsDiv = document.createElement("div");
       teamsDiv.className = "match-teams";
 
-      // Team A line
+      // Left-side line — tag shows the team letter of the first player on that side.
       const aLine = document.createElement("div");
       aLine.className = "match-team-line";
+      const aLetter = (m.teamA && m.teamA.length) ? teamOfPlayer(m.teamA[0]) : "A";
       const aTag = document.createElement("span");
-      aTag.className = "team-a-tag";
-      aTag.textContent = "A";
+      aTag.className = "team-tag team-tag-" + aLetter.toLowerCase();
+      aTag.textContent = aLetter;
       aLine.appendChild(aTag);
       (m.teamA || []).forEach(function(pi, slot) {
         if (slot > 0) {
@@ -4603,12 +5037,13 @@ function renderMatchSchedule() {
       vs.className = "vs"; vs.textContent = "vs";
       teamsDiv.appendChild(vs);
 
-      // Team B line
+      // Right-side line — tag shows the team letter of the first player on that side.
       const bLine = document.createElement("div");
       bLine.className = "match-team-line";
+      const bLetter = (m.teamB && m.teamB.length) ? teamOfPlayer(m.teamB[0]) : "B";
       const bTag = document.createElement("span");
-      bTag.className = "team-b-tag";
-      bTag.textContent = "B";
+      bTag.className = "team-tag team-tag-" + bLetter.toLowerCase();
+      bTag.textContent = bLetter;
       bLine.appendChild(bTag);
       (m.teamB || []).forEach(function(pi, slot) {
         if (slot > 0) {
@@ -4639,6 +5074,127 @@ function renderMatchSchedule() {
   if (focusedId) {
     const el = document.getElementById(focusedId);
     if (el && el.focus) el.focus();
+  }
+}
+
+// Render a single team-totals day (used inline from renderMatchSchedule when
+// a round's format is Combined / Alliance).
+function renderTeamTotalsDay(container, day, course, fmt, teams, ptsByRound, overall, leaderOverall) {
+  const round1 = n => (Math.round(n * 10) / 10);
+  const courseName = (state.courseInfo[course.id] && state.courseInfo[course.id].name) || course.name;
+  const dayWrap = document.createElement("div");
+  dayWrap.className = "day-block";
+  dayWrap.innerHTML = '<div class="day-header">Day ' + day.day + " &middot; " + courseName +
+    ' <span class="alliance-format-teams">' + (SCORING_FORMAT_LABELS[fmt] || "") + '</span></div>';
+  const tbl = document.createElement("table");
+  tbl.className = "team-totals-table";
+  tbl.innerHTML = "<thead><tr><th>Team</th><th>Players</th><th class=\"tt-round\">This round</th><th class=\"tt-total\">Overall</th></tr></thead>";
+  const tbody = document.createElement("tbody");
+  let roundLeader = null;
+  teams.forEach(t => {
+    const rp = (ptsByRound[course.id] && ptsByRound[course.id][t]) || 0;
+    if (roundLeader == null || rp > (ptsByRound[course.id][roundLeader] || 0)) roundLeader = t;
+  });
+  teams.forEach(t => {
+    const pis = indicesOfTeam(t);
+    const names = pis.map(pi => (state.players[pi] || "Player " + (pi + 1))).join(", ") || "—";
+    const roundPts = (ptsByRound[course.id] && ptsByRound[course.id][t]) || 0;
+    const overallPts = overall[t] || 0;
+    const tr = document.createElement("tr");
+    tr.className = "tt-row tt-team-" + t.toLowerCase() +
+      (roundLeader === t && roundPts > 0 ? " tt-round-leader" : "") +
+      (leaderOverall === t && overallPts > 0 ? " tt-overall-leader" : "");
+    tr.innerHTML =
+      '<td class="tt-team-cell"><span class="team-badge team-badge-' + t.toLowerCase() + '">' + t + '</span></td>' +
+      '<td class="tt-players">' + names + "</td>" +
+      '<td class="tt-round">' + round1(roundPts) + "</td>" +
+      '<td class="tt-total">' + round1(overallPts) + "</td>";
+    tbody.appendChild(tr);
+  });
+  tbl.appendChild(tbody);
+  dayWrap.appendChild(tbl);
+  container.appendChild(dayWrap);
+}
+
+// Legacy full-schedule alliance view — kept for callers that don't dispatch
+// per-day. Currently unused since renderMatchSchedule dispatches per round.
+function renderTeamTotalsSchedule(container) {
+  const teams = teamsInPlay();
+  const rounds = getActiveCourses();
+  const round1 = n => (Math.round(n * 10) / 10);
+
+  // Precompute per-round team totals — each round uses its OWN scoring format.
+  const ptsByRound = {};
+  rounds.forEach(course => {
+    const fmtR = currentScoringFormat(course.id);
+    ptsByRound[course.id] = {};
+    teams.forEach(t => {
+      const pis = indicesOfTeam(t);
+      let total = 0;
+      for (let h = 0; h < HOLES; h++) {
+        if (!isHoleActive(course.id, h)) continue;
+        total += teamHolePoints(pis, course.id, h, fmtR);
+      }
+      ptsByRound[course.id][t] = total;
+    });
+  });
+  const overall = {};
+  teams.forEach(t => {
+    overall[t] = 0;
+    rounds.forEach(course => { overall[t] += ptsByRound[course.id][t]; });
+  });
+  const leaderOverall = teams.reduce((best, t) => (best == null || overall[t] > overall[best] ? t : best), null);
+
+  // Banner: show the single format if all rounds match, otherwise "Mixed".
+  const uniformFmt = allSameScoringFormat();
+  const fmtLabel = uniformFmt ? (SCORING_FORMAT_LABELS[uniformFmt] || uniformFmt) : "Mixed (see rounds)";
+  const header = document.createElement("div");
+  header.className = "alliance-format-banner";
+  header.innerHTML = "Scoring format: <strong>" + fmtLabel + "</strong>" +
+    ' <span class="alliance-format-teams">' + teams.length + " team" + (teams.length === 1 ? "" : "s") + " in play</span>";
+  container.appendChild(header);
+
+  // One card per round
+  rounds.forEach((course, rIdx) => {
+    const courseName = (state.courseInfo[course.id] && state.courseInfo[course.id].name) || course.name;
+    const day = document.createElement("div");
+    day.className = "day-block";
+    day.innerHTML = '<div class="day-header">Round ' + (rIdx + 1) + " &middot; " + courseName +
+      ' <span class="alliance-format-teams">' + (SCORING_FORMAT_LABELS[currentScoringFormat(course.id)] || "") + '</span></div>';
+    const tbl = document.createElement("table");
+    tbl.className = "team-totals-table";
+    tbl.innerHTML = "<thead><tr><th>Team</th><th>Players</th><th class=\"tt-round\">This round</th><th class=\"tt-total\">Overall</th></tr></thead>";
+    const tbody = document.createElement("tbody");
+    // Leader on THIS round
+    let roundLeader = null;
+    teams.forEach(t => { if (roundLeader == null || ptsByRound[course.id][t] > ptsByRound[course.id][roundLeader]) roundLeader = t; });
+    teams.forEach(t => {
+      const pis = indicesOfTeam(t);
+      const names = pis.map(pi => (state.players[pi] || "Player " + (pi + 1))).join(", ") || "—";
+      const roundPts = ptsByRound[course.id][t] || 0;
+      const overallPts = overall[t] || 0;
+      const tr = document.createElement("tr");
+      tr.className = "tt-row tt-team-" + t.toLowerCase() +
+        (roundLeader === t && roundPts > 0 ? " tt-round-leader" : "") +
+        (leaderOverall === t && overallPts > 0 ? " tt-overall-leader" : "");
+      tr.innerHTML =
+        '<td class="tt-team-cell"><span class="team-badge team-badge-' + t.toLowerCase() + '">' + t + '</span></td>' +
+        '<td class="tt-players">' + names + "</td>" +
+        '<td class="tt-round">' + round1(roundPts) + "</td>" +
+        '<td class="tt-total">' + round1(overallPts) + "</td>";
+      tbody.appendChild(tr);
+    });
+    tbl.appendChild(tbody);
+    day.appendChild(tbl);
+    container.appendChild(day);
+  });
+
+  // If no rounds / no teams, show a placeholder
+  if (!rounds.length || !teams.length) {
+    const empty = document.createElement("div");
+    empty.className = "alliance-empty";
+    empty.textContent = "Set up rounds and team assignments in the Setup tab.";
+    container.appendChild(empty);
   }
 }
 
@@ -4713,28 +5269,64 @@ function computeTeamStandings() {
 function renderTeamLeaderboard() {
   const c = document.getElementById("team-leaderboard");
   if (!c) return;
-  const s = computeTeamStandings();
-  const aLead = s.aTotal > s.bTotal;
-  const bLead = s.bTotal > s.aTotal;
-  const fmt = n => (Math.round(n * 10) / 10);
-  const provisionalPart = s.inProgress > 0
-    ? '<span class="team-lb-provisional"> (incl. ' + s.inProgress + ' in progress)</span>'
-    : '';
-  c.innerHTML =
-    '<div class="team-lb">' +
-      '<div class="team-lb-row team-a-bg' + (aLead ? " team-lb-lead" : "") + '">' +
-        '<span class="team-lb-name">Team A</span>' +
-        '<span class="team-lb-pts">' + fmt(s.aTotal) + '</span>' +
-      '</div>' +
-      '<div class="team-lb-row team-b-bg' + (bLead ? " team-lb-lead" : "") + '">' +
-        '<span class="team-lb-name">Team B</span>' +
-        '<span class="team-lb-pts">' + fmt(s.bTotal) + '</span>' +
-      '</div>' +
+  const s = computeAllTeamStandings();
+  const round1 = n => (Math.round(n * 10) / 10);
+  const uniformFmt = allSameScoringFormat();
+
+  // Sort teams by total points (descending), stable A-F order for ties
+  const teamsSorted = s.teams.slice().sort((a, b) => {
+    const dt = (s.totals[b] || 0) - (s.totals[a] || 0);
+    return dt !== 0 ? dt : TEAMS.indexOf(a) - TEAMS.indexOf(b);
+  });
+
+  // Highlight leaders of each independent metric (Stableford, Match pts).
+  const maxSb = Math.max(...s.teams.map(t => s.stablefordTotals[t] || 0), 0);
+  const maxMp = Math.max(...s.teams.map(t => s.matchTotals[t] || 0), 0);
+
+  let html = '<table class="team-lb-table"><thead><tr>' +
+    '<th class="tl-team">Team</th>' +
+    '<th class="tl-num">Stableford</th>' +
+    '<th class="tl-num">Match pts</th>' +
+    '</tr></thead><tbody>';
+  teamsSorted.forEach(t => {
+    const sb = s.stablefordTotals[t] || 0;
+    const mp = s.matchTotals[t] || 0;
+    const sbLead = maxSb > 0 && sb === maxSb;
+    const mpLead = maxMp > 0 && mp === maxMp;
+    html +=
+      '<tr class="team-' + t.toLowerCase() + '-row">' +
+        '<td class="tl-team"><span class="team-badge team-badge-' + t.toLowerCase() + '">' + t + '</span> Team ' + t + '</td>' +
+        '<td class="tl-num' + (sbLead ? ' tl-lead' : '') + '">' + round1(sb) + '</td>' +
+        '<td class="tl-num' + (mpLead ? ' tl-lead' : '') + '">' + round1(mp) + '</td>' +
+      '</tr>';
+  });
+  html += '</tbody></table>';
+
+  // Summary line
+  if (uniformFmt === "betterBall") {
+    const mp = computeTeamStandings();
+    html +=
       '<div class="team-lb-summary">' +
-        s.complete + ' complete &middot; ' + s.inProgress + ' in progress &middot; ' + s.notStarted + ' not started' +
-        (s.inProgress > 0 ? ' <br><em>Points shown include provisional leads from in-progress matches.</em>' : '') +
-      '</div>' +
-    '</div>';
+        mp.complete + ' complete &middot; ' + mp.inProgress + ' in progress &middot; ' + mp.notStarted + ' not started' +
+        (mp.inProgress > 0 ? ' <br><em>Match pts include provisional leads from in-progress matches.</em>' : '') +
+      '</div>';
+  } else if (uniformFmt) {
+    html +=
+      '<div class="team-lb-summary">' +
+        'Cumulative team stableford points across all active rounds.' +
+        ' <br><em>Format: ' + (SCORING_FORMAT_LABELS[uniformFmt] || uniformFmt) + '</em>' +
+      '</div>';
+  } else {
+    const perRound = getActiveCourses()
+      .map((c, i) => "R" + (i + 1) + ": " + (SCORING_FORMAT_LABELS[currentScoringFormat(c.id)] || "").replace(/ Stableford$/, ""))
+      .join(" &middot; ");
+    html +=
+      '<div class="team-lb-summary">' +
+        'Stableford column = sum of team-hole points on Combined/Alliance rounds. Match pts = points from Better Ball rounds.' +
+        ' <br><em>' + perRound + '</em>' +
+      '</div>';
+  }
+  c.innerHTML = html;
 }
 
 function refreshLeaderboards() {
@@ -4770,7 +5362,7 @@ function setRoundCount(newCount) {
   state.pairs = null;
   state.oddsEvens = null;
   state.revealed = false;
-  if (isTeamTotalFormat()) {
+  if (anyTeamTotalFormat()) {
     state.matchSchedule = generateAllianceSchedule();
   } else {
     conformScheduleToCounts();
@@ -4939,41 +5531,62 @@ function renderRoundChips() {
 //   competition score for that team.
 function computeAllTeamStandings() {
   const teams = teamsInPlay();
-  const totals = {};
-  teams.forEach(t => { totals[t] = 0; });
-  const fmt = currentScoringFormat();
+  const totals = {};              // sum of all round contributions (mixed units when formats differ)
+  const matchTotals = {};         // Better Ball match points only
+  const stablefordTotals = {};    // Alliance/Combined stableford totals only
+  teams.forEach(t => { totals[t] = 0; matchTotals[t] = 0; stablefordTotals[t] = 0; });
 
-  if (fmt === "betterBall") {
-    (state.matchSchedule || DEFAULT_MATCH_SCHEDULE).forEach(day => {
-      day.matches.forEach(m => {
-        const s = computeMatchStatus(m, day.roundIdx);
-        if (!s) return;
-        const teamAletter = m.teamA && m.teamA.length ? teamOfPlayer(m.teamA[0]) : "A";
-        const teamBletter = m.teamB && m.teamB.length ? teamOfPlayer(m.teamB[0]) : "B";
-        if (totals[teamAletter] == null) totals[teamAletter] = 0;
-        if (totals[teamBletter] == null) totals[teamBletter] = 0;
-        totals[teamAletter] += s.aPoints;
-        totals[teamBletter] += s.bPoints;
-      });
+  // Match-play (better ball): aggregate match points from the schedule, per round.
+  (state.matchSchedule || DEFAULT_MATCH_SCHEDULE).forEach(day => {
+    const course = COURSES[day.roundIdx];
+    if (!course) return;
+    const fmtR = currentScoringFormat(course.id);
+    // Better Ball AND Combined both run as A-vs-B matches and award match pts.
+    // Alliance formats have no A-vs-B match, so they don't contribute here.
+    if (isTeamTotalFormat(fmtR)) return;
+    day.matches.forEach(m => {
+      // Only count genuine A-vs-B matches (both sides populated with players
+      // from DIFFERENT teams). Skip alliance-shaped rows (empty teamB or
+      // same-team rosters) so match-play totals don't include phantom wins.
+      if (!m.teamA || !m.teamA.length || !m.teamB || !m.teamB.length) return;
+      const teamAletter = teamOfPlayer(m.teamA[0]);
+      const teamBletter = teamOfPlayer(m.teamB[0]);
+      if (teamAletter === teamBletter) return;
+      const s = computeMatchStatus(m, day.roundIdx);
+      if (!s) return;
+      if (totals[teamAletter] == null) { totals[teamAletter] = 0; matchTotals[teamAletter] = 0; stablefordTotals[teamAletter] = 0; }
+      if (totals[teamBletter] == null) { totals[teamBletter] = 0; matchTotals[teamBletter] = 0; stablefordTotals[teamBletter] = 0; }
+      totals[teamAletter] += s.aPoints;
+      totals[teamBletter] += s.bPoints;
+      matchTotals[teamAletter] += s.aPoints;
+      matchTotals[teamBletter] += s.bPoints;
     });
-  } else {
-    // Sum team-hole points across active rounds for the entire team roster.
-    getActiveCourses().forEach(course => {
-      teams.forEach(t => {
-        const pis = indicesOfTeam(t);
-        if (!pis.length) return;
-        for (let h = 0; h < HOLES; h++) {
-          if (!isHoleActive(course.id, h)) continue;
-          totals[t] += teamHolePoints(pis, course.id, h, fmt);
-        }
-      });
+  });
+
+  // Team-total (alliance only): sum each team's own team-hole points across
+  // the round. Combined and Better Ball do NOT accumulate here — they run as
+  // matches and their outcomes are captured as match points above.
+  getActiveCourses().forEach(course => {
+    const fmtR = currentScoringFormat(course.id);
+    if (!isTeamTotalFormat(fmtR)) return;
+    teams.forEach(t => {
+      const pis = indicesOfTeam(t);
+      if (!pis.length) return;
+      let rTotal = 0;
+      for (let h = 0; h < HOLES; h++) {
+        if (!isHoleActive(course.id, h)) continue;
+        rTotal += teamHolePoints(pis, course.id, h, fmtR);
+      }
+      totals[t] += rTotal;
+      stablefordTotals[t] += rTotal;
     });
-  }
+  });
+
   // Determine the current leader (or leaders on a tie)
   let max = -Infinity;
   teams.forEach(t => { if (totals[t] > max) max = totals[t]; });
   const leaders = teams.filter(t => totals[t] === max && max > 0);
-  return { teams, totals, leaders };
+  return { teams, totals, matchTotals, stablefordTotals, leaders };
 }
 
 function renderHeaderScoreboard() {
@@ -4981,23 +5594,51 @@ function renderHeaderScoreboard() {
   if (!wrap) return;
   const s = computeAllTeamStandings();
   const round1 = n => (Math.round(n * 10) / 10);
+  // Detect which metrics have any activity — only surface columns that matter.
+  const anySb = s.teams.some(t => (s.stablefordTotals[t] || 0) > 0);
+  const anyMp = s.teams.some(t => (s.matchTotals[t] || 0) > 0);
+  // If nothing's been played yet, fall back to showing whichever formats exist
+  // so the layout doesn't collapse to a single blank number.
+  const hasBetterBall = COURSES.some(c => currentScoringFormat(c.id) === "betterBall");
+  const hasTeamTotal  = COURSES.some(c => isTeamTotalFormat(currentScoringFormat(c.id)));
+  const showSb = anySb || hasTeamTotal;
+  const showMp = anyMp || hasBetterBall;
+  const maxSb = Math.max(...s.teams.map(t => s.stablefordTotals[t] || 0), 0);
+  const maxMp = Math.max(...s.teams.map(t => s.matchTotals[t] || 0), 0);
+
   wrap.innerHTML = "";
   const n = s.teams.length;
   wrap.classList.toggle("multi", n > 2);
   s.teams.forEach((t, idx) => {
     const side = document.createElement("div");
     side.className = "ts-side ts-" + t.toLowerCase();
-    if (s.leaders.length === 1 && s.leaders[0] === t) side.classList.add("leading");
     side.id = "ts-side-" + t.toLowerCase();
     const lbl = document.createElement("span");
     lbl.className = "ts-label";
     lbl.textContent = "Team " + t;
-    const score = document.createElement("span");
-    score.className = "ts-score";
-    score.id = "ts-" + t.toLowerCase() + "-score";
-    score.textContent = round1(s.totals[t]);
+    // Stack the two metrics on the right — labelled so it's clear what each is.
+    const metrics = document.createElement("span");
+    metrics.className = "ts-metrics";
+    if (showSb) {
+      const sb = s.stablefordTotals[t] || 0;
+      const isLead = maxSb > 0 && sb === maxSb;
+      metrics.innerHTML +=
+        '<span class="ts-metric' + (isLead ? " ts-metric-lead" : "") + '">' +
+          '<span class="ts-metric-val">' + round1(sb) + '</span>' +
+          '<span class="ts-metric-unit">STABLEFORD</span>' +
+        '</span>';
+    }
+    if (showMp) {
+      const mp = s.matchTotals[t] || 0;
+      const isLead = maxMp > 0 && mp === maxMp;
+      metrics.innerHTML +=
+        '<span class="ts-metric' + (isLead ? " ts-metric-lead" : "") + '">' +
+          '<span class="ts-metric-val">' + round1(mp) + '</span>' +
+          '<span class="ts-metric-unit">MATCH PTS</span>' +
+        '</span>';
+    }
     side.appendChild(lbl);
-    side.appendChild(score);
+    side.appendChild(metrics);
     wrap.appendChild(side);
     // "vs" separator only when exactly two teams
     if (n === 2 && idx === 0) {
